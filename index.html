@@ -33,6 +33,8 @@ body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15p
 .wrap{max-width:1440px;margin:0 auto;padding-block:20px 40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
 header.top{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:6px 16px;margin-bottom:16px}
 header.top h1{font-size:22px;margin:0;font-weight:700}
+.ttl{display:flex;flex-direction:column;gap:2px;min-width:0}
+.sub{margin:0;font-size:13px;color:var(--muted)}
 .app{display:grid;grid-template-columns:minmax(0,430px) minmax(0,1fr);gap:20px;align-items:start}
 @media (max-width:960px){.app{grid-template-columns:minmax(0,1fr)}}
 .form{display:flex;flex-direction:column;gap:12px;min-width:0}
@@ -124,7 +126,7 @@ table.it td{font-variant-numeric:tabular-nums}
 
 <div class="wrap">
   <header class="top">
-    <h1>學生團行程速排</h1>
+    <div class="ttl"><h1>學生團行程速排</h1><p class="sub">速排日本學生團行程的內部工具（以關東、關西為主）。僅用於初步推案，進一步資訊請與線控確認。</p></div>
     <div class="btns"><button type="button" class="ghost" id="btn-sample">載入範例</button><button type="button" class="ghost" id="btn-clear">清空重填</button></div>
   </header>
 

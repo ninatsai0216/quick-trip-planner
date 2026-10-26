@@ -967,34 +967,49 @@ function readSheet(){
 const x=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 const FONT='Microsoft JhengHei';
 function wr(t,o={}){const sz=o.sz||22;return `<w:r><w:rPr><w:rFonts w:ascii="${FONT}" w:hAnsi="${FONT}" w:eastAsia="${FONT}" w:cs="${FONT}"/>${o.b?'<w:b/><w:bCs/>':''}${o.red?'<w:color w:val="E00000"/>':''}<w:sz w:val="${sz}"/><w:szCs w:val="${sz}"/></w:rPr><w:t xml:space="preserve">${x(t)}</w:t></w:r>`;}
-function wp(t,o={}){return `<w:p><w:pPr><w:spacing w:before="${o.before||0}" w:after="${o.after||0}" w:line="${o.line||288}" w:lineRule="auto"/>${o.c?'<w:jc w:val="center"/>':''}</w:pPr>${t?wr(t,o):''}</w:p>`;}
-let CFG={sz:22,line:276};
+/* 行高一律用「固定行高」，高度才不會因電腦字型不同而跑掉 */
+function wp(t,o={}){const sz=o.sz||22,line=o.line||Math.round(sz*10*1.25);return `<w:p><w:pPr><w:spacing w:before="${o.before||0}" w:after="${o.after||0}" w:line="${line}" w:lineRule="exact"/>${o.c?'<w:jc w:val="center"/>':''}</w:pPr>${t?wr(t,{...o,sz}):''}</w:p>`;}
+let CFG={sz:22,line:270};
+const PAGE={w:11906,h:16838,mt:567,mb:567,ml:680,mr:680};
+const TW=PAGE.w-PAGE.ml-PAGE.mr; /* 表格寬 */
+const COLS=[Math.round(TW*0.1),Math.round(TW*0.57),0];COLS[2]=TW-COLS[0]-COLS[1];
+function vlines(t,widthTw,sz){
+  const pt=sz/2,avail=widthTw/20-11;let em=0;
+  for(const ch of String(t))em+=/[\x00-\x7f]/.test(ch)?0.55:1;
+  return Math.max(1,Math.ceil(em/(avail/pt)));
+}
+function cellLinesN(lines,w,sz){return lines.reduce((a,l)=>a+vlines(l.t,w,sz),0)||1;}
+function tableH(rows,o){
+  const hdr=o.line+80;
+  return hdr+rows.reduce((a,r)=>a+Math.max(...r.map((c,k)=>cellLinesN(c,COLS[k],o.sz)))*o.line+80,0);
+}
 function wc(lines,w,o={}){
-  const ps=lines.length?lines.map(l=>wp(l.t,{...l,c:o.c||l.c,sz:o.sz||CFG.sz,line:CFG.line})).join(''):'<w:p/>';
+  const ps=lines.length?lines.map(l=>wp(l.t,{...l,c:o.c||l.c,sz:CFG.sz,line:CFG.line})).join(''):wp('',{sz:CFG.sz,line:CFG.line});
   return `<w:tc><w:tcPr><w:tcW w:w="${w}" w:type="dxa"/><w:vAlign w:val="center"/>${o.shade?'<w:shd w:val="clear" w:color="auto" w:fill="E6E6E6"/>':''}</w:tcPr>${ps}</w:tc>`;
 }
-/* 估算高度，挑最大且放得下一頁的字級：6 天內一頁，超過 6 天分兩頁（每頁最多 6 天） */
+/* 6 天內放一頁、7 天以上第 7 天起換頁：從大字級往下試，挑放得下的最大字級 */
 function fitCfg(D,pages){
-  const usable=16838-1440;
-  const head=2400+(D.req?600:0);
-  const rowsLines=g=>g.reduce((a,r)=>a+Math.max(1,...r.map(c=>c.length)),0);
-  const worst=Math.max(...pages.map(g=>rowsLines(g)+0)),rowsN=Math.max(...pages.map(g=>g.length));
-  const opts=[{sz:22,line:276},{sz:22,line:252},{sz:21,line:240},{sz:20,line:240},{sz:19,line:240},{sz:18,line:240}];
-  for(const o of opts){const lh=o.sz/2*1.45*20*o.line/240;if(worst*lh+rowsN*80+500+head<=usable)return o;}
-  return opts[opts.length-1];
+  const usable=PAGE.h-PAGE.mt-PAGE.mb-300;
+  const top=560+vlines(D.pax,TW,24)*300+60;
+  const tail=o=>(D.req?vlines(D.req,TW,o.sz)*o.line+120:0)+vlines(D.note,TW,o.sz)*o.line+120;
+  for(const sz of [22,21,20,19,18,17,16,15,14]){
+    const o={sz,line:Math.round(sz*10*1.25)};
+    if(pages.every((g,pi)=>tableH(g,o)+(pi===0?top:0)+(pi===pages.length-1?tail(o):0)<=usable))return o;
+  }
+  return {sz:14,line:175};
 }
 function docXml(D){
-  const W=[1000,5966,3500],bd=['top','left','bottom','right','insideH','insideV'].map(k=>`<w:${k} w:val="single" w:sz="8" w:space="0" w:color="000000"/>`).join('');
+  const W=COLS,bd=['top','left','bottom','right','insideH','insideV'].map(k=>`<w:${k} w:val="single" w:sz="8" w:space="0" w:color="000000"/>`).join('');
   const pages=[];for(let i=0;i<D.rows.length;i+=6)pages.push(D.rows.slice(i,i+6));
   if(!pages.length)pages.push([]);
   CFG=fitCfg(D,pages);
   const head=`<w:tr><w:trPr><w:tblHeader/><w:cantSplit/></w:trPr>${wc([{t:'日期'}],W[0],{c:1,shade:1})}${wc([{t:'行程內容'}],W[1],{c:1,shade:1})}${wc([{t:'備註'}],W[2],{c:1,shade:1})}</w:tr>`;
-  const tbl=rows=>`<w:tbl><w:tblPr><w:tblW w:w="10466" w:type="dxa"/><w:jc w:val="center"/><w:tblBorders>${bd}</w:tblBorders><w:tblLayout w:type="fixed"/><w:tblCellMar><w:top w:w="30" w:type="dxa"/><w:left w:w="110" w:type="dxa"/><w:bottom w:w="30" w:type="dxa"/><w:right w:w="110" w:type="dxa"/></w:tblCellMar></w:tblPr><w:tblGrid>${W.map(w=>`<w:gridCol w:w="${w}"/>`).join('')}</w:tblGrid>${head}${rows.map(r=>`<w:tr><w:trPr><w:cantSplit/></w:trPr>${wc(r[0]||[],W[0],{c:1})}${wc(r[1]||[],W[1])}${wc(r[2]||[],W[2])}</w:tr>`).join('')}</w:tbl>`;
-  const brk='<w:p><w:r><w:br w:type="page"/></w:r></w:p>';
+  const tbl=rows=>`<w:tbl><w:tblPr><w:tblW w:w="${TW}" w:type="dxa"/><w:jc w:val="center"/><w:tblBorders>${bd}</w:tblBorders><w:tblLayout w:type="fixed"/><w:tblCellMar><w:top w:w="40" w:type="dxa"/><w:left w:w="110" w:type="dxa"/><w:bottom w:w="40" w:type="dxa"/><w:right w:w="110" w:type="dxa"/></w:tblCellMar></w:tblPr><w:tblGrid>${W.map(w=>`<w:gridCol w:w="${w}"/>`).join('')}</w:tblGrid>${head}${rows.map(r=>`<w:tr><w:trPr><w:cantSplit/></w:trPr>${wc(r[0]||[],W[0],{c:1})}${wc(r[1]||[],W[1])}${wc(r[2]||[],W[2])}</w:tr>`).join('')}</w:tbl>`;
+  const brk='<w:p><w:pPr><w:spacing w:before="0" w:after="0" w:line="20" w:lineRule="exact"/></w:pPr><w:r><w:br w:type="page"/></w:r></w:p>';
   const body=pages.map(tbl).join(brk);
   return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>`+
-    wp(D.title,{b:1,c:1,sz:36,after:160})+wp(D.pax,{b:1,sz:24,after:60})+body+(D.req?wp(D.req,{b:1,sz:22,before:160}):'')+wp(D.note,{b:1,sz:22,before:160})+
-    `<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="720" w:right="720" w:bottom="720" w:left="720" w:header="400" w:footer="400" w:gutter="0"/></w:sectPr></w:body></w:document>`;
+    wp(D.title,{b:1,c:1,sz:36,line:440,after:120})+wp(D.pax,{b:1,sz:24,line:300,after:60})+body+(D.req?wp(D.req,{b:1,sz:CFG.sz,line:CFG.line,before:120}):'')+wp(D.note,{b:1,sz:CFG.sz,line:CFG.line,before:120})+
+    `<w:sectPr><w:pgSz w:w="${PAGE.w}" w:h="${PAGE.h}"/><w:pgMar w:top="${PAGE.mt}" w:right="${PAGE.mr}" w:bottom="${PAGE.mb}" w:left="${PAGE.ml}" w:header="300" w:footer="300" w:gutter="0"/></w:sectPr></w:body></w:document>`;
 }
 async function makeDocx(D){
   const z=new JSZip();

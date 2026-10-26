@@ -1,0 +1,1040 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>body{margin:0}[hidden]{display:none!important}</style>
+</head>
+<body>
+<title>學生團行程速排</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: 左側 5 個步驟的簡易填表，右側 A4 即時預覽；手機上下堆疊 */
+:root{
+  --bg:#edf0f3; --panel:#ffffff; --field:#f8fafb; --ink:#1b2733; --muted:#5b6977; --line:#d3dae1;
+  --accent:#155e75; --accent-ink:#ffffff; --accent-soft:#e2eff3;
+  --warn-bg:#fff6e0; --warn-ink:#7a5200; --warn-line:#efd394;
+  --alert-bg:#fdecec; --alert-ink:#9f1d1d; --alert-line:#f0a8a8;
+  --sheet:#ffffff; --sheet-ink:#111111; --sheet-line:#333333; --sheet-head:#e6e6e6; --hl:#d40000;
+  --sans:"Noto Sans TC","Microsoft JhengHei","PingFang TC",system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#11171c; --panel:#192128; --field:#141b21; --ink:#e3e9ee; --muted:#93a2af; --line:#2c3842;
+  --accent:#5fb4cb; --accent-ink:#0b1a20; --accent-soft:#1d313a;
+  --warn-bg:#2b2412; --warn-ink:#f0cf86; --warn-line:#5a4a22; --alert-bg:#3a1818; --alert-ink:#ffb4b4; --alert-line:#7a3030; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#11171c; --panel:#192128; --field:#141b21; --ink:#e3e9ee; --muted:#93a2af; --line:#2c3842;
+  --accent:#5fb4cb; --accent-ink:#0b1a20; --accent-soft:#1d313a;
+  --warn-bg:#2b2412; --warn-ink:#f0cf86; --warn-line:#5a4a22; --alert-bg:#3a1818; --alert-ink:#ffb4b4; --alert-line:#7a3030; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.5}
+.wrap{max-width:1440px;margin:0 auto;padding-block:20px 40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+header.top{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:6px 16px;margin-bottom:16px}
+header.top h1{font-size:22px;margin:0;font-weight:700}
+.app{display:grid;grid-template-columns:minmax(0,430px) minmax(0,1fr);gap:20px;align-items:start}
+@media (max-width:960px){.app{grid-template-columns:minmax(0,1fr)}}
+.form{display:flex;flex-direction:column;gap:12px;min-width:0}
+.step{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:12px}
+.step h2{font-size:16px;margin:0;font-weight:700;display:flex;align-items:center;gap:10px}
+.step h2 .n{width:24px;height:24px;border-radius:50%;background:var(--accent);color:var(--accent-ink);font-size:13px;display:grid;place-items:center;font-family:var(--mono);flex:none}
+.step h2 small{font-weight:400;color:var(--muted);font-size:12px}
+.grid{display:grid;gap:10px}
+.g2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.g3{grid-template-columns:repeat(3,minmax(0,1fr))}
+label.f{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--muted);min-width:0}
+input,select,textarea{font:inherit;color:var(--ink);background:var(--field);border:1px solid var(--line);border-radius:8px;padding:8px 10px;width:100%;min-width:0}
+textarea{resize:vertical;line-height:1.7}
+input:focus,select:focus,textarea:focus,button:focus-visible,[contenteditable]:focus,.pick input:focus-visible+span{outline:2px solid var(--accent);outline-offset:1px}
+.mono{font-family:var(--mono)}
+.total{font-size:13px;color:var(--muted)}
+.total b{color:var(--ink);font-family:var(--mono);font-size:16px}
+.picks{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.pick{position:relative;cursor:pointer}
+.pick input{position:absolute;opacity:0;pointer-events:none}
+.pick span{display:flex;flex-direction:column;gap:2px;border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;height:100%}
+.pick b{font-size:16px}
+.pick small{font-size:12px;color:var(--muted);line-height:1.45}
+.pick input:checked+span{border-color:var(--accent);background:var(--accent-soft)}
+.fl{display:flex;flex-direction:column;gap:6px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:12px;color:var(--muted)}
+.chip{font:inherit;font-size:12px;font-family:var(--mono);border:1px solid var(--line);background:var(--field);color:var(--ink);border-radius:999px;padding:3px 9px;cursor:pointer}
+.chip:hover,.chip.on{border-color:var(--accent);color:var(--accent)}
+.spotchips{max-height:150px;overflow:auto;font-family:var(--sans)}
+.spotchips .chip{font-family:var(--sans)}
+.lookup{font-size:12px;color:var(--muted)}
+.lookup.bad{color:var(--warn-ink)}
+.lookup a{color:var(--accent)}
+details.more summary{cursor:pointer;font-size:13px;color:var(--accent);list-style:none}
+details.more summary::-webkit-details-marker{display:none}
+details.more summary::before{content:"＋ "}
+details.more[open] summary::before{content:"－ "}
+details.more .grid{margin-top:8px}
+.tog{display:flex;flex-direction:column;gap:8px;border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.tog.on{border-color:var(--accent);background:var(--accent-soft)}
+.tog>label.sw{display:flex;align-items:center;gap:10px;font-weight:500;cursor:pointer}
+.tog>label.sw input{width:18px;height:18px;accent-color:var(--accent);flex:none}
+.f-lab{font-size:13px;color:var(--muted)}
+.badge{font-size:12px;font-weight:700;border-radius:999px;padding:3px 10px;border:1px solid var(--line);color:var(--muted)}
+.badge.ok{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+.gen{display:flex;flex-direction:column;gap:8px;padding-block:4px 8px}
+.stale{border:1.5px solid var(--accent);background:var(--accent-soft);color:var(--ink);border-radius:12px;padding:10px 14px;font-size:13px;font-weight:500}
+.empty{border:1.5px dashed var(--line);border-radius:12px;padding:48px 20px;text-align:center;display:flex;flex-direction:column;gap:6px;color:var(--muted);background:var(--panel)}
+.empty b{color:var(--ink);font-size:16px}
+.alert{border:1.5px solid var(--alert-line);background:var(--alert-bg);color:var(--alert-ink);border-radius:10px;padding:10px 12px;font-size:13px}
+.alert b{display:block;margin-bottom:2px}
+.alert ul{margin:0;padding-left:18px}
+.f-lab small{font-size:12px}
+.hint{font-size:12px;color:var(--muted);margin:0}
+.chk{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);cursor:pointer}
+.chk input{width:16px;height:16px;accent-color:var(--accent)}
+button{font:inherit;font-size:14px;border-radius:8px;padding:8px 14px;cursor:pointer;border:1px solid var(--line);background:var(--panel);color:var(--ink)}
+button.pri{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:700}
+button.big{width:100%;padding:12px;font-size:16px}
+button:disabled{opacity:.55;cursor:default}
+button.ghost{border-color:transparent;background:transparent;color:var(--muted);font-size:13px;padding:4px 8px}
+.status{font-size:13px;color:var(--muted);min-height:1.5em}
+.status.err{color:var(--warn-ink)}
+.pv{position:sticky;top:calc(env(safe-area-inset-top,0px) + 12px);display:flex;flex-direction:column;gap:12px;min-width:0}
+@media (max-width:960px){.pv{position:static}}
+.bar{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 12px;display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;justify-content:space-between}
+.btns{display:flex;flex-wrap:wrap;gap:8px}
+.msg{font-size:12px;color:var(--muted)}
+.warn{background:var(--warn-bg);color:var(--warn-ink);border:1px solid var(--warn-line);border-radius:12px;padding:10px 14px;font-size:13px}
+.warn b{display:block;margin-bottom:4px}
+.warn ul{margin:0;padding-left:18px}
+.scroller{overflow:auto;max-height:calc(100vh - 220px);border-radius:4px}
+@media (max-width:960px){.scroller{max-height:none}}
+.sheet{background:var(--sheet);color:var(--sheet-ink);width:100%;min-width:640px;max-width:820px;margin:0 auto;padding:34px 30px 30px;box-shadow:0 1px 3px rgba(0,0,0,.15),0 8px 24px rgba(0,0,0,.08);font-family:"Microsoft JhengHei","Noto Sans TC",sans-serif}
+.sheet h3{text-align:center;font-size:24px;margin:0 0 14px;font-weight:700}
+.sheet .pax{font-weight:700;font-size:16px;margin:0 0 4px}
+table.it{width:100%;border-collapse:collapse;table-layout:fixed;font-size:14.5px;line-height:1.6}
+table.it th,table.it td{border:1px solid var(--sheet-line);padding:3px 8px;vertical-align:middle}
+table.it th{background:var(--sheet-head);font-weight:500}
+table.it td:first-child{text-align:center}
+table.it td{font-variant-numeric:tabular-nums}
+.sheet .red{color:var(--hl)}
+.sheet .b{font-weight:700}
+.sheet .c{text-align:center}
+.sheet .note{font-weight:700;margin:12px 0 0;font-size:15px}
+[contenteditable]:hover{background:rgba(21,94,117,.06)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <h1>學生團行程速排</h1>
+    <div class="btns"><button type="button" class="ghost" id="btn-sample">載入範例</button><button type="button" class="ghost" id="btn-clear">清空重填</button></div>
+  </header>
+
+  <div class="app">
+    <form class="form" id="form" autocomplete="off" onsubmit="return false">
+
+      <section class="step">
+        <h2><span class="n">1</span>學校與日期</h2>
+        <div class="grid g2">
+          <label class="f">校名<input id="f-school" data-k="school" placeholder="例：OO高中"></label>
+          <label class="f">地區<select id="f-region" data-k="region"></select></label>
+          <label class="f">出發日期<input id="f-start" type="date" data-k="start"></label>
+          <label class="f">天數<select id="f-days" data-k="days"></select></label>
+        </div>
+      </section>
+
+      <section class="step">
+        <h2><span class="n">2</span>人數 <small id="pax-total"></small></h2>
+        <div class="grid g3">
+          <label class="f">學生<input id="f-students" data-k="students" inputmode="numeric" class="mono"></label>
+          <label class="f">老師<input id="f-teachers" data-k="teachers" inputmode="numeric" class="mono"></label>
+          <label class="f">家長<input id="f-parents" data-k="parents" inputmode="numeric" class="mono"></label>
+          <label class="f">內勤<input id="f-staff" data-k="staff" inputmode="numeric" class="mono"></label>
+          <label class="f">領隊<input id="f-leaders" data-k="leaders" inputmode="numeric" class="mono"></label>
+        </div>
+      </section>
+
+      <section class="step">
+        <h2><span class="n">3</span>航班</h2>
+        <div class="picks">
+          <label class="pick"><input type="radio" name="pattern" id="f-pat-mid" value="mid" data-k="pattern"><span><b>早去午回</b><small>去程 10 點前起飛<br>回程 12–15 點起飛</small></span></label>
+          <label class="pick"><input type="radio" name="pattern" id="f-pat-late" value="late" data-k="pattern"><span><b>早去晚回</b><small>去程 10 點前起飛<br>回程 16–18 點起飛，最晚 15 點出發去機場</small></span></label>
+        </div>
+        <div class="fl">
+          <label class="f">去程航班（知道再填）<input id="f-out-no" data-k="out.no" class="mono" placeholder="例：CI100"></label>
+          <div class="chips" id="out-chips"></div>
+          <div class="lookup" id="out-lookup"></div>
+        </div>
+        <div class="fl">
+          <label class="f">回程航班（知道再填）<input id="f-back-no" data-k="back.no" class="mono" placeholder="例：CI105"></label>
+          <div class="chips" id="back-chips"></div>
+          <div class="lookup" id="back-lookup"></div>
+        </div>
+        <details class="more" id="more-times">
+          <summary>自己填起飛／抵達時間（選填）</summary>
+          <div class="grid g2">
+            <label class="f">去程起飛<input id="f-out-dep" data-k="out.dep" class="mono"></label>
+            <label class="f">去程抵達<input id="f-out-arr" data-k="out.arr" class="mono"></label>
+            <label class="f">回程起飛<input id="f-back-dep" data-k="back.dep" class="mono"></label>
+            <label class="f">回程抵達<input id="f-back-arr" data-k="back.arr" class="mono"></label>
+          </div>
+        </details>
+      </section>
+
+      <section class="step">
+        <h2><span class="n">4</span>行程重點 <small>不確定的欄位選「自動安排」</small></h2>
+        <div class="tog" id="tog-ex">
+          <label class="sw"><input type="checkbox" id="f-exOn" data-k="exOn">學校交流</label>
+          <input id="f-exSchool" data-k="exSchool" placeholder="交流學校校名（留空＝待媒合）">
+          <div class="grid g3">
+            <label class="f">哪一天<select id="f-exDay" data-k="exDay" class="daysel"></select></label>
+            <label class="f">開始<select id="f-exStart" data-k="exStart" class="timesel"></select></label>
+            <label class="f">結束<select id="f-exEnd" data-k="exEnd" class="timesel"></select></label>
+          </div>
+        </div>
+        <div class="tog" id="tog-hs">
+          <label class="sw"><input type="checkbox" id="f-hsOn" data-k="hsOn">HOMESTAY</label>
+          <div class="grid g3">
+            <label class="f">地區<select id="f-hsArea" data-k="hsArea"></select></label>
+            <label class="f">入村日<select id="f-hsDay" data-k="hsDay" class="daysel"></select></label>
+            <label class="f">入村時間<select id="f-hsTime" data-k="hsTime" class="timesel"></select></label>
+          </div>
+          <input id="f-hsCustom" data-k="hsCustom" placeholder="自填地區">
+        </div>
+        <div class="tog" id="tog-fr">
+          <label class="sw"><input type="checkbox" id="f-frOn" data-k="frOn">城市自由探索</label>
+          <div class="grid g3">
+            <label class="f">哪一天<select id="f-frDay" data-k="frDay" class="daysel"></select></label>
+            <label class="f">開始<select id="f-frStart" data-k="frStart" class="timesel"></select></label>
+            <label class="f">結束<select id="f-frEnd" data-k="frEnd" class="timesel"></select></label>
+          </div>
+          <div class="grid g2">
+            <label class="f">附交通券<select id="f-frPass" data-k="frPass"></select></label>
+            <label class="f">午晚餐代金（日圓）<select id="f-frVoucher" data-k="frVoucher"></select></label>
+          </div>
+          <input id="f-frPassCustom" data-k="frPassCustom" placeholder="自填交通券，例：京都巴士一日券">
+        </div>
+        <div class="tog" id="tog-pk">
+          <label class="sw"><input type="checkbox" id="f-pkOn" data-k="pkOn">樂園</label>
+          <div class="grid g3">
+            <label class="f">樂園<select id="f-park" data-k="park"></select></label>
+            <label class="f">哪一天<select id="f-pkDay" data-k="pkDay" class="daysel"></select></label>
+            <label class="f">午晚餐代金（日圓）<select id="f-pkVoucher" data-k="pkVoucher"></select></label>
+          </div>
+        </div>
+        <div class="alert" id="opt-alert" role="alert" hidden></div>
+        <div class="fl"><span class="f-lab">住宿 <small id="hotel-hint"></small></span><div class="grid g2" id="hotels"></div></div>
+      </section>
+
+      <section class="step">
+        <h2><span class="n">5</span>必去景點 <small>一行一個，系統自動分天排時間</small></h2>
+        <textarea id="f-spots" data-k="spots" rows="7" placeholder="一行填一個景點，或點下方常見景點加入"></textarea>
+        <p class="hint">景點時間與車程為系統暫時設定，請以 Google Map 查詢的時間為主。</p>
+        <p class="hint">常見景點，點一下加入：</p>
+        <div class="chips spotchips" id="spot-chips"></div>
+        <div class="alert" id="spot-alert" role="alert" hidden></div>
+        <label class="chk"><input type="checkbox" id="f-aiFill" data-k="aiFill">有空白的天數，幫我補建議景點（會標示「建議」）</label>
+      </section>
+
+      <section class="step">
+        <h2><span class="n">6</span>特殊需求 <small>選填，會印在行程表下方</small></h2>
+        <textarea id="f-req" data-k="req" rows="3" placeholder="例：2 位素食、1 位海鮮過敏、需無障礙房、希望安排大學參訪"></textarea>
+      </section>
+
+      <div class="gen">
+        <button type="button" class="pri big" id="btn-gen">產生行程表</button>
+        <div class="status" id="gen-status" role="status"></div>
+      </div>
+    </form>
+
+    <div class="pv">
+      <div class="bar">
+        <div class="btns">
+          <button type="button" class="pri" id="btn-docx">下載 Word</button>
+          <button type="button" id="btn-copy">複製表格</button>
+        </div>
+        <span class="badge" id="pv-badge">預覽中（尚未產生）</span>
+        <span class="msg" id="msg" role="status">表格內容可以直接點進去修改。</span>
+      </div>
+      <div class="stale" id="stale" hidden>左邊資料有修改，預覽已更新。確認後請再按一次「產生行程表」才能下載。</div>
+      <div class="warn" id="warn"></div>
+      <div class="scroller" id="pv-scroller">
+        <div class="sheet" id="sheet">
+          <h3 id="pv-title" contenteditable="true"></h3>
+          <p class="pax" id="pv-pax" contenteditable="true"></p>
+          <table class="it">
+            <colgroup><col style="width:10%"><col style="width:57%"><col style="width:33%"></colgroup>
+            <thead><tr><th>日期</th><th>行程內容</th><th>備註</th></tr></thead>
+            <tbody id="pv-body"></tbody>
+          </table>
+          <p class="note req" id="pv-req" contenteditable="true" hidden></p>
+          <p class="note" id="pv-note" contenteditable="true">為參考行程，實際行程因活動日期、住宿檔次、實際航班、餐膳規劃不同，而有所不同。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<datalist id="dl-hotel"></datalist>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script>
+/* ===== 資料 ===== */
+const REGIONS={
+  '關東':{city:'東京',pass:['JR一日券','JR+地下鐵一日券'],apts:['成田','羽田'],meals:[['文字燒DIY放題吃到飽','B'],['深川丼定食','L'],['相撲火鍋套餐','D']]},
+  '關西':{city:'大阪',pass:['大阪地下鐵一日券','JR一日券'],apts:['關西','神戶'],meals:[['大阪燒+章魚燒DIY','B'],['京都湯豆腐御膳','L'],['串炸套餐','D']]},
+  '九州':{city:'福岡',pass:['JR一日券'],apts:['福岡','熊本','鹿兒島'],meals:[['博多豚骨拉麵','L'],['長崎強棒麵','L'],['雞肉南蠻定食','L'],['博多水炊鍋','D'],['牛腸鍋','D']]},
+  '北海道':{city:'札幌',pass:['JR一日券'],apts:['新千歲'],meals:[['成吉思汗烤肉吃到飽','D'],['札幌湯咖哩','L'],['味噌拉麵','L'],['石狩鍋','D'],['海鮮丼','L']]},
+  '沖繩':{city:'那霸',pass:['JR一日券'],apts:['那霸'],meals:[['沖繩麵套餐','L'],['塔可飯','L'],['苦瓜炒什錦定食','L'],['阿古豬涮涮鍋','D'],['沖繩料理套餐','D']]},
+  '中部北陸':{city:'名古屋',pass:['JR一日券'],apts:['中部','小松','富山'],meals:[['飛驒牛朴葉味噌燒定食','B'],['味噌豬排定食','L'],['信州蕎麥麵','L'],['金澤海鮮丼','L'],['名古屋手羽先套餐','D']]}
+};
+const PARKS={'關東':'東京迪士尼樂園','關西':'大阪環球影城'};
+const HS_DEFAULT={'關東':'茨城笠間','關西':'美山'};
+const AUTO={exStart:540,exLen:300,hsTime:990,frStart:540,frEnd:1200,voucher:'3000'};
+const HS_AREAS={'關東':['茨城笠間','栃木縣大田原','御殿場'],'關西':['美山','和束町','奈良飛鳥','和歌山']};
+const BASE_MEALS=[['日式定食','B'],['和風套餐','D'],['和風御膳','B'],['涮涮鍋吃到飽+甜點飲料無限供應','D'],['燒肉放題吃到飽+飲料吧暢飲','D'],['壽喜燒定食','D'],['自助餐吃到飽','D'],['中華料理套餐','D'],['拉麵+煎餃套餐','L'],['日式咖哩飯套餐','L'],['豬排定食','L'],['烏龍麵套餐','L'],['天丼定食','L'],['迴轉壽司','L']];
+const FLIGHT_DATA="CI100 桃園 0850 成田 1315;CI104 桃園 1215 成田 1635;CI108 桃園 1435 成田 1900;CI106 桃園 1630 成田 2055;CI220 松山 0900 羽田 1310;CI222 松山 1805 羽田 2215;CI107 成田 0940 桃園 1220;CI101 成田 1430 桃園 1715;CI105 成田 1755 桃園 2035;CI109 成田 2000 桃園 2245;CI223 羽田 0755 松山 1030;CI221 羽田 1430 松山 1655;BR184 桃園 0755 成田 1225;BR198 桃園 0900 成田 1325;BR196 桃園 1520 成田 1940;BR192 松山 0720 羽田 1130;BR190 松山 1620 羽田 2020;BR183 成田 1325 桃園 1605;BR197 成田 1425 桃園 1705;BR195 成田 2040 桃園 2320;BR189 羽田 1050 松山 1330;BR191 羽田 1240 松山 1505;JX800 桃園 0830 成田 1255;JX802 桃園 1040 成田 1505;JX804 桃園 1500 成田 1925;JX801 成田 1410 桃園 1650;JX803 成田 1620 桃園 1900;JX805 成田 2040 桃園 2320;CX450 桃園 1300 成田 1715;CX451 成田 1545 桃園 1825;IT200 桃園 0635 成田 1100;IT700 桃園 1530 成田 1955;IT216 桃園 0010 羽田 0425;IT201 成田 1150 桃園 1440;IT701 成田 2045 桃園 2325;IT217 羽田 0525 桃園 0800;JL802 桃園 1025 成田 1455;JL809 成田 1805 桃園 2045;JL096 松山 0940 羽田 1350;JL098 松山 1420 羽田 1830;JL097 羽田 0855 松山 1115;JL099 羽田 1825 松山 2050;NH824 桃園 1000 成田 1420;NH823 成田 1840 桃園 2205;NH852 松山 1330 羽田 1745;NH854 松山 1650 羽田 2050;NH851 羽田 0940 松山 1205;NH853 羽田 1320 松山 1550;MM620 桃園 0200 成田 0630;MM626 桃園 1050 成田 1520;MM860 桃園 2025 羽田 0045;MM625 成田 1650 桃園 1940;MM627 成田 2210 桃園 0100;MM859 羽田 0555 桃園 0835;GK012 桃園 0240 成田 0700;GK014 桃園 1310 成田 1735;GK013 成田 0915 桃園 1210;GK011 成田 2240 桃園 0130;TR866 桃園 0645 成田 1115;TR874 桃園 1530 成田 2000;TR867 成田 1230 桃園 1510;TR875 成田 2115 桃園 2355;CI152 桃園 1015 關西 1350;CI156 桃園 0805 關西 1135;CI172 桃園 1420 關西 1750;CI153 關西 1430 桃園 1650;CI157 關西 1245 桃園 1500;CI173 關西 1900 桃園 2125;BR178 桃園 0630 關西 0955;BR132 桃園 0820 關西 1155;BR130 桃園 1330 關西 1655;BR176 桃園 1430 神戶 1800;BR177 關西 1055 桃園 1310;BR131 關西 1255 桃園 1505;BR129 關西 1810 桃園 2025;BR175 神戶 1900 桃園 2115;JX834 桃園 0630 神戶 1030;JX822 桃園 0920 關西 1250;JX835 神戶 1130 桃園 1350;JX821 關西 1220 桃園 1440;JX823 關西 1400 桃園 1620;CX564 桃園 1115 關西 1445;CX565 關西 1615 桃園 1830;IT210 桃園 0700 關西 1025;IT212 桃園 1440 關西 1755;IT211 關西 1130 桃園 1350;IT213 關西 1855 桃園 2120;MM024 桃園 0940 關西 1310;MM026 桃園 1340 關西 1710;MM028 桃園 1850 關西 2220;MM023 關西 0715 桃園 0945;MM025 關西 1010 桃園 1240;MM027 關西 1525 桃園 1755;GK050 桃園 0230 關西 0605;GK054 桃園 1815 關西 2145;GK055 關西 1455 桃園 1715;GK057 關西 2310 桃園 0130;CI154 桃園 0740 中部 1110;CI150 桃園 1715 中部 2050;CI151 中部 0950 桃園 1215;CI155 中部 1210 桃園 1445;CX530 桃園 1200 中部 1535;CX531 中部 1640 桃園 1910;IT206 桃園 0845 中部 1225;IT209 中部 2115 桃園 2350;JX838 桃園 1455 中部 1830;JX839 中部 1940 桃園 2215;MM724 桃園 0255 中部 0625;MM723 中部 2255 桃園 0130;CI110 桃園 0650 福岡 1000;CI116 桃園 1625 福岡 1935;CI111 福岡 1100 桃園 1235;CI117 福岡 2035 桃園 2220;BR106 桃園 0800 福岡 1115;BR102 桃園 1625 福岡 1955;BR105 福岡 1215 桃園 1350;BR101 福岡 2055 桃園 2240;IT240 桃園 0645 福岡 1000;IT720 桃園 1340 福岡 1655;IT241 福岡 1055 桃園 1240;IT721 福岡 1755 桃園 1940;JX840 桃園 1445 福岡 1800;JX841 福岡 1910 桃園 2050;CI130 桃園 0835 新千歲 1320;CI131 新千歲 1440 桃園 1815;BR166 桃園 0615 新千歲 1100;BR116 桃園 0930 新千歲 1405;BR165 新千歲 1210 桃園 1605;BR115 新千歲 1520 桃園 1855;JX850 桃園 0915 新千歲 1405;JX851 新千歲 1520 桃園 1905;IT234 桃園 0620 新千歲 1055;IT235 新千歲 1155 桃園 1535;CI120 桃園 0810 那霸 1050;CI122 桃園 1650 那霸 1925;CI121 那霸 1155 桃園 1235;CI123 那霸 2025 桃園 2105;BR112 桃園 0655 那霸 0915;BR186 桃園 1650 那霸 1910;BR113 那霸 1015 桃園 1055;BR185 那霸 2010 桃園 2055;JX870 桃園 1140 那霸 1415;JX871 那霸 1525 桃園 1610;IT230 桃園 0635 那霸 0855;IT232 桃園 1820 那霸 2040;IT231 那霸 0945 桃園 1020;IT233 那霸 2130 桃園 2205;MM922 桃園 0945 那霸 1225;MM926 桃園 1520 那霸 1750;MM930 桃園 1820 那霸 2050;MM921 那霸 0815 桃園 0855;MM925 那霸 1335 桃園 1420;MM929 那霸 1650 桃園 1735";
+const FLIGHTS={};FLIGHT_DATA.split(';').forEach(r=>{const[n,da,d,aa,a]=r.split(' ');FLIGHTS[n]={depApt:da,dep:d,arrApt:aa,arr:a};});
+const AIRLINES={CI:'中華航空',BR:'長榮航空',JX:'星宇航空',CX:'國泰航空',IT:'台灣虎航',JL:'日本航空',NH:'全日空',MM:'樂桃航空',GK:'捷星日本',TR:'酷航'};
+const TW_APTS=['桃園','松山','台中','高雄'];
+/* 平均航程（當地時間差，分鐘）：沒填航班時用來估算 */
+const OUT_DUR={成田:265,羽田:250,關西:210,神戶:240,中部:215,福岡:190,新千歲:285,那霸:140,熊本:200,鹿兒島:200,小松:230,富山:230};
+const BACK_DUR={成田:160,羽田:155,關西:135,神戶:140,中部:145,福岡:100,新千歲:215,那霸:40,熊本:110,鹿兒島:110,小松:150,富山:150};
+const PAT={mid:{name:'早去午回',back:[720,900],defBack:810},late:{name:'早去晚回',back:[960,1080],defBack:1020}};
+
+/* ===== 工具 ===== */
+const WD='日一二三四五六';
+const pad=n=>String(n).padStart(2,'0');
+function toMin(v){const s=String(v||'').replace(/[^0-9]/g,'');if(s.length<3||s.length>4)return null;const p=s.padStart(4,'0');const h=+p.slice(0,2),m=+p.slice(2);if(h>29||m>59)return null;return h*60+m;}
+const fmt=m=>pad(Math.floor(((m%1440)+1440)%1440/60))+pad(((m%60)+60)%60);
+const up=(m,st)=>Math.ceil(m/st)*st;
+const down=(m,st)=>Math.floor(m/st)*st;
+const clone=o=>JSON.parse(JSON.stringify(o));
+function rng(seed){let a=seed>>>0;return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+function shuffle(arr,r){const a=arr.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+const isBuffet=n=>/吃到飽|放題|自助/.test(n);
+function normFlight(v){const m=String(v||'').toUpperCase().replace(/\s+/g,'').match(/^([A-Z0-9]{2})0*(\d{1,4})$/);if(!m)return null;return m[1]+(m[2].length<3?m[2].padStart(3,'0'):m[2]);}
+function spotList(S){return String(S.spots||'').split('\n').map(s=>s.trim()).filter(Boolean);}
+
+function parseLines(arr){
+  return (arr||[]).map(l=>String(l).trim()).filter(Boolean).map(l=>{
+    let red=false;if(/^[*＊]/.test(l)){red=true;l=l.replace(/^[*＊]\s*/,'');}
+    l=l.replace(/(\d{1,2}):(\d{2})/g,(_,h,m)=>pad(h)+m);
+    const m=l.match(/^(\d{3,4})\s*(?:[-~～–]\s*(\d{3,4}))?/);
+    let s=null,e=null;if(m){s=toMin(m[1]);e=m[2]?toMin(m[2]):null;}
+    return {s,e,raw:l,red,user:true};
+  });
+}
+function mk(s,e,text,o={}){let pre='';if(s!=null){pre=fmt(s);if(e!=null)pre+='-'+fmt(e);else if(o.tilde)pre+='~';pre+=' ';}return {s,e,raw:pre+text,red:!!o.red};}
+
+/* 航班實際採用的資料：自填時間 > 內建時刻 > 依時段估算 */
+function effFlight(S,k){
+  const reg=REGIONS[S.region]||REGIONS['關東'],L=S[k]||{};
+  const code=normFlight(L.no),f=code?FLIGHTS[code]:null;
+  const r={code,found:!!f,airline:code?(AIRLINES[code.slice(0,2)]||''):'',est:false};
+  if(k==='out'){r.depApt=f?f.depApt:'桃園';r.arrApt=f?f.arrApt:reg.apts[0];}
+  else{r.depApt=f?f.depApt:reg.apts[0];r.arrApt=f?f.arrApt:'桃園';}
+  const dur=k==='out'?(OUT_DUR[r.arrApt]||240):(BACK_DUR[r.depApt]||150);
+  let dep=toMin(L.dep),arr=toMin(L.arr);
+  if(dep==null&&f){dep=toMin(f.dep);if(arr==null)arr=toMin(f.arr);}
+  if(dep==null){dep=k==='out'?530:(PAT[S.pattern]||PAT.late).defBack;r.est=true;}
+  if(arr==null){arr=dep+dur;if(!f)r.est=true;}
+  r.dep=dep;r.arr=arr;return r;
+}
+
+/* 自動安排交流、HOMESTAY、自由日、每天的可排時段（三者可同一天，只檢查時間是否衝突） */
+function frame(S){
+  const N=Math.max(4,+S.days||6),reg=REGIONS[S.region]||REGIONS['關東'];
+  const out=effFlight(S,'out'),back=effFlight(S,'back');
+  const notes=[],alerts=[],dn=i=>`第 ${i+1} 天`;
+  const pickDay=(v,name)=>{if(v===''||v==null)return null;const i=+v;if(i>=1&&i<=N-2)return i;alerts.push(`${name}選的${dn(i)}不能用（第一天和最後一天不能排），已改成自動安排。`);return null;};
+  let hs=-1,ex=-1,fr=-1;
+  if(S.hsOn){const c=pickDay(S.hsDay,'HOMESTAY');hs=c!=null?c:N-2;}
+  const mids=[];for(let i=1;i<=N-2;i++)mids.push(i);
+  if(S.exOn){const c=pickDay(S.exDay,'學校交流');ex=c!=null?c:(mids.filter(i=>i!==hs).includes(2)?2:(mids.find(i=>i!==hs)??mids[0]));}
+  if(S.frOn){const c=pickDay(S.frDay,'城市探索');fr=c!=null?c:(mids.find(i=>i>ex&&i!==hs&&i!==ex)??mids.find(i=>i!==hs&&i!==ex)??mids[0]);}
+  let pk=-1;if(S.pkOn){const c=pickDay(S.pkDay,'樂園');pk=c!=null?c:(mids.find(i=>i!==hs&&i!==ex&&i!==fr)??mids.find(i=>i!==hs)??mids[0]);}
+  const parkName=S.park||PARKS[S.region]||'';if(S.pkOn&&!parkName)alerts.push('樂園還沒選（這個地區沒有預設樂園）。');
+  let exS=toMin(S.exStart),exE=toMin(S.exEnd);if(exS==null)exS=exE!=null?exE-AUTO.exLen:(hs>=0&&ex===hs+1?600:AUTO.exStart);if(exE==null)exE=exS+AUTO.exLen;
+  const frS=toMin(S.frStart)??(hs>=0&&fr===hs+1?600:AUTO.frStart),frE=toMin(S.frEnd)??AUTO.frEnd;
+  if(S.exOn&&exE<=exS)alerts.push('學校交流的結束時間比開始時間早，請重新選。');
+  if(S.frOn&&frE<=frS)alerts.push('城市探索的結束時間比開始時間早，請重新選。');
+  const area=(S.hsArea==='__custom'?(S.hsCustom||'').trim():(S.hsArea||HS_DEFAULT[S.region]||''))||'（地區待選）';
+  if(S.hsOn&&area==='（地區待選）')alerts.push('HOMESTAY 還沒選地區（這個地區沒有預設的 HOMESTAY 地點）。');
+  const hsT=toMin(S.hsTime)??AUTO.hsTime;
+  let leave=back.dep-180;if(S.pattern!=='mid')leave=Math.min(900,leave);leave=down(leave,30);
+  const days=[];
+  for(let i=0;i<N;i++){
+    const first=i===0,last=i===N-1;
+    const blocks=[];
+    if(i===ex)blocks.push([exS,exE,'學校交流']);
+    if(i===fr)blocks.push([frS,frE,'城市探索']);
+    if(i===pk)blocks.push([540,1230,'樂園']);
+    if(i===hs)blocks.push([hsT,hsT+30,'HOMESTAY 入村式']);
+    /* 衝突檢查 */
+    for(let a=0;a<blocks.length;a++)for(let b=a+1;b<blocks.length;b++){
+      const A=blocks[a],B=blocks[b];
+      if(A[0]<B[1]&&B[0]<A[1])alerts.push(`${dn(i)}的${A[2]}（${fmt(A[0])}-${fmt(A[1])}）和${B[2]}（${fmt(B[0])}-${fmt(B[1])}）時間重疊。`);
+    }
+    if(i===hs)blocks.filter(b=>b[2]!=='HOMESTAY 入村式'&&b[1]<=hsT&&hsT-b[1]<60).forEach(b=>alerts.push(`${dn(i)}${b[2]}到 ${fmt(b[1])} 結束，離 HOMESTAY 入村 ${fmt(hsT)} 不到 1 小時，可能來不及移動。`));
+    if(i-1===hs&&i!==N-1)blocks.filter(b=>b[0]<570).forEach(b=>alerts.push(`${dn(i)}早上要從 HOMESTAY 退村（約 09:00），${b[2]} ${fmt(b[0])} 開始太早。`));
+    let start=510,end=1230,lunch=true,dinner=true,type='normal',lunchBy='',dinnerBy='';
+    if(first){type='first';start=up(out.arr+120,30);lunch=out.arr+90<=750;dinner=out.arr+90<=1230;}
+    else if(last){type='last';start=i-1===hs?540:480;end=leave;lunch=leave>=780;dinner=false;}
+    else{
+      if(i-1===hs)start=540;
+      if(i===hs){type='hs';end=hsT-30;dinner=false;dinnerBy='hs';}
+      else if(i===pk)type='park';else if(i===ex)type='ex';else if(i===fr)type='free';
+      if(i===ex&&exS<=720&&exE>=780){lunch=false;lunchBy='ex';}
+      else if(i===fr&&frS<=720&&frE>=780){lunch=false;lunchBy='fr';}
+      if(dinner&&i===fr&&frS<=1080&&frE>=1110){dinner=false;dinnerBy='fr';}
+      if(i===pk){lunch=false;lunchBy='pk';dinner=false;dinnerBy='pk';}
+    }
+    /* 景點可排的空檔：扣掉固定行程，取最長的一段 */
+    const fixed=blocks.filter(b=>b[2]!=='HOMESTAY 入村式').map(b=>[b[0],b[1]]).sort((x,y)=>x[0]-y[0]);
+    let cur=start,best=[0,0];
+    fixed.forEach(([bs,be])=>{if(bs-30-cur>best[1]-best[0])best=[cur,bs-30];cur=Math.max(cur,be+30);});
+    if(end-cur>best[1]-best[0])best=[cur,end];
+    days.push({i,type,start:best[0],end:best[1],lunch,dinner,lunchBy,dinnerBy});
+  }
+  return {N,reg,out,back,hs,ex,fr,pk,parkName,area,hsT,leave,days,notes,alerts,exS,exE,frS,frE};
+}
+
+function dateLabel(S,i){if(!S.start)return {md:`Day${i+1}`,wd:''};const d=new Date(S.start+'T00:00:00');d.setDate(d.getDate()+i);return {md:`${pad(d.getMonth()+1)}/${pad(d.getDate())}`,wd:WD[d.getDay()]};}
+
+/* ===== 組出行程表 ===== */
+function build(S){
+  const F=frame(S),{N,reg,out,back,hs,ex,fr,area}=F,warn=F.alerts.concat(F.notes);
+  const r=rng(+S.seed||1);
+  const regM=shuffle(reg.meals,r),baseM=shuffle(BASE_MEALS,r);
+  const pool=[];for(let i=0;i<Math.max(regM.length,baseM.length);i++){if(regM[i])pool.push(regM[i]);if(baseM[i])pool.push(baseM[i]);}
+  const used=new Set();let shortage=false;
+  const pick=t=>'日式定食';
+  const defHotel=reg.city+'市區飯店';
+  const hotel=i=>i>=N-1?'家':(i===hs?area+' HOMESTAY':(((S.hotels||[])[i])||'').trim()||defHotel);
+  const plan=autoPlan(S,F);
+  const days=[];
+
+  for(let i=0;i<N;i++){
+    const D=F.days[i],first=i===0,last=i===N-1,lb=dateLabel(S,i);
+    let user=parseLines(plan.days[i]);
+    if(!D.lunch)user=user.filter(u=>!/午餐/.test(u.raw));
+    if(!D.dinner)user=user.filter(u=>!/晚餐/.test(u.raw));
+    const has=w=>user.some(u=>u.raw.includes(w));
+    let items=[],meals={b:'',l:'',d:''},needL=D.lunch,needD=D.dinner,earliestL=720;
+    const flights=[];
+
+    if(first){
+      const apt=out.dep-170;
+      items.push(mk(apt-30,apt-15,'學校報到&出發'),mk(apt,apt+30,'機場報到&登機'),mk(out.arr,out.arr+90,`抵達${out.arrApt}機場&出關`));
+      flights.push(['out',out]);meals.b='自理';
+      if(!D.lunch)meals.l=out.dep>=840?'自理':'機上餐';else earliestL=up(out.arr+100,30);
+      if(!D.dinner)meals.d=out.dep>=1020?'機上餐':'自理（待確認）';
+    }else if(i-1===hs){
+      items.push(mk(420,510,'早餐'),mk(510,540,'退村式'));meals.b='HOMESTAY';
+    }else if((i!==fr||F.frS>=660||i===ex||i===hs)&&!(i===F.pk&&i!==ex&&i!==hs)){
+      const chk=last||hotel(i-1)!==hotel(i);
+      items.push(mk(420,480,'早餐'));meals.b='飯店';
+    }else meals.b='飯店';
+
+    if(last){
+      items.push(mk(back.dep-120,back.dep,'機場報到&登機'),mk(back.arr,back.arr+20,`抵達${back.arrApt}機場&出關`));
+      flights.push(['back',back]);
+      if(!D.lunch)meals.l=back.arr<=720?'自理':'機上餐';
+      meals.d=back.arr<=1080?'自理':'機上餐';
+    }
+    if(i===fr){
+      const pass=S.frPass==='__custom'?(S.frPassCustom||'').trim():(S.frPass||reg.pass[0]);
+      const v=String(S.frVoucher||'').trim()||AUTO.voucher;
+      const vt=v?`代金 ${v}`:'代金（金額待填）';
+      if(D.lunchBy==='fr')meals.l=vt;if(D.dinnerBy==='fr')meals.d=vt;
+      const ptxt=pass&&pass!=='__none'?`（附${pass}）`:'',fullDay=F.frS<=600&&F.frE>=1140&&i!==ex&&i!==hs&&i!==F.pk;
+      items.push(fullDay?mk(null,null,'全日城市探索'+ptxt):mk(F.frS,F.frE,'城市探索'+ptxt));
+    }
+    if(i===ex){
+      items.push(mk(F.exS,F.exE,`學校交流（${(S.exSchool||'').trim()||'待媒合'}）`));if(D.lunchBy==='ex')meals.l='交流學校便當';
+    }
+    items=items.concat(user);
+    if(i===hs){
+      items.push(mk(F.hsT,F.hsT+30,`${area}民家 HOMESTAY 入村式`),mk(F.hsT+30,null,'由入住家庭帶領，前往住宿及晚餐',{tilde:true}));
+      meals.d='HOMESTAY';
+    }
+    if(i===F.pk){const v=`代金 ${String(S.pkVoucher||'').trim()||'1500'}`;meals.l=v;meals.d=v;needL=false;needD=false;
+      items.push(mk(null,null,'全日'+F.parkName+(/迪士尼/.test(F.parkName)?'（附飯店-迪士尼來回地鐵票）':'')));
+      if(!last&&i!==hs&&hotel(i-1)!==hotel(i))items.push(mk(null,null,'飯店 CHECK IN'));}
+    if(plan.disneyDays.includes(i)){const v=`代金 ${String(S.pkVoucher||'').trim()||'1500'}`;meals.l=v;meals.d=v;needL=false;needD=false;}
+    if(needL&&has('午餐（園內')){meals.l='園內自理';needL=false;}
+    if(needL){
+      const name=pick('L');meals.l=name;
+      if(!has('午餐')){
+        const cov=items.filter(it=>it.s!=null&&it.s<750&&(it.e??it.s)>720);
+        let s=Math.max(earliestL,cov.length?up(Math.max(...cov.map(c=>c.e??c.s))+10,30):720),dur=isBuffet(name)?90:60;
+        const nx=items.filter(it=>it.s!=null&&it.s>=s).map(it=>it.s),nextS=nx.length?Math.min(...nx):null;
+        if(nextS!=null&&s+dur>nextS){dur=60;if(s+dur>nextS)s=Math.max(earliestL,down(nextS-60,30));}
+        items.push(mk(s,s+dur,'午餐'));
+      }
+    }
+    if(needD){
+      const name=pick('D');meals.d=name;
+      if(!has('晚餐')){
+        const before=items.filter(it=>it.s!=null&&it.s<=1170);
+        const le=before.length?Math.max(...before.map(c=>c.e??c.s)):null;
+        const s=Math.max(1050,le!=null?up(le+10,30):1080);
+        items.push(mk(s,s+(isBuffet(name)?90:60),'晚餐'));
+      }
+    }
+    if(!meals.l)meals.l='（待確認）';if(!meals.d)meals.d='（待確認）';
+
+    let k=-1;items.forEach((it,idx)=>{if(it.s!=null)k=it.s;it.key=k;it.ord=idx;});
+    items.sort((a,b)=>a.key-b.key||a.ord-b.ord);
+    if(!last&&i!==hs&&i!==F.pk&&(i!==fr||i===ex)){
+      const ends=items.filter(it=>it.s!=null).map(it=>it.e??it.s);
+      const t=ends.length?up(Math.max(...ends)+15,15):null;
+      items.push(mk(t,null,first||hotel(i-1)!==hotel(i)?'飯店 CHECK IN':'返回飯店休息'));
+    }
+    if(last){const late=user.filter(u=>u.s!=null&&(u.e??u.s)>F.leave);if(late.length)warn.push(`最後一天有景點超過 ${fmt(F.leave)} 出發去機場的時間，請調整。`);}
+
+    const rem=[];
+    flights.forEach(([kk,f])=>{
+      rem.push({t:f.code?`${f.airline} ${f.code}`.trim():`航班待確認（${(PAT[S.pattern]||PAT.late).name}）`,b:1,c:1});
+      const pre=f.est?'約':'';
+      rem.push({t:`${f.depApt} ${pre}${fmt(f.dep)}/ ${f.arrApt} ${pre}${fmt(f.arr)}`,b:1,c:1});
+    });
+    rem.push({t:'早餐：'+meals.b},{t:'午餐：'+meals.l},{t:'晚餐：'+meals.d},{t:'住宿：'+hotel(i)});
+    days.push({md:lb.md,wd:lb.wd,sched:items.map(it=>({t:it.raw,red:it.red})),rem});
+  }
+
+  if(out.dep>=600)warn.push(`去程 ${fmt(out.dep)} 起飛，不是早去（10 點前）的航班，請確認。`);
+  const pw=(PAT[S.pattern]||PAT.late).back;
+  if(back.dep<pw[0]||back.dep>pw[1])warn.push(`回程 ${fmt(back.dep)} 起飛，不在「${(PAT[S.pattern]||PAT.late).name}」的時段內，請確認。`);
+  if(out.est||back.est)warn.push('沒有航班號碼的部分，起降時間是依時段估算（標「約」），訂到航班後要更新。');
+  else warn.push('航班時刻取自 2026/10 網路時刻表，依日期與季節會變動，需上網查證。');
+  if(!spotList(S).length)warn.push('還沒填必去景點。');
+  const spotAlerts=[];
+  plan.unplaced.forEach(n=>spotAlerts.push(`「${n}」排不進去：時間不夠。建議增加天數、刪掉其他景點，或縮短交流／城市探索的時間。`));
+  plan.over.forEach(n=>spotAlerts.push(n));
+  warn.unshift(...spotAlerts);
+  plan.notes.forEach(n=>warn.push(n));
+  if(days.some(d=>d.rem.some(x=>x.t==='住宿：'+defHotel)))warn.push(`沒填的晚上住宿暫訂「${defHotel}」。`);
+  if(!S.start)warn.push('出發日期未填，日期欄先以 Day 表示。');
+
+  const st=S.students!=null?(+S.students||0):((+S.female||0)+(+S.male||0)),t=+S.teachers||0,pa=+S.parents||0,sf=+S.staff||0,l=+S.leaders||0,tot=st+t+pa+sf+l;
+  const parts=[`學生 ${st} 名`];
+  if(t)parts.push(`老師 ${t} 名`);if(pa)parts.push(`家長 ${pa} 名`);if(sf)parts.push(`內勤 ${sf} 名`);if(l)parts.push(`${l} 領隊`);
+  const yr=S.start?S.start.slice(0,4)+'年':'';
+  return {title:`${yr}${S.school||'OO高中'}日本${S.region}教育旅行 ${N} 日`,pax:`人數：${parts.join('+')}=${tot} 人`,days,warn,spotAlerts,total:tot,frame:F};
+}
+
+/* ===== 景點資料庫（位置只用來分組與估算車程，需人工確認） ===== */
+/* 格式：名稱|關鍵字(逗號分隔)|緯度|經度|停留分鐘 */
+const SPOT_DB={
+'關東':`淺草寺、雷門、仲見世通|淺草,浅草,雷門,仲見世|35.7148|139.7967|90
+東京晴空塔（上天望甲板350m）|晴空塔,天空樹,skytree|35.7101|139.8107|90
+台場海濱公園、自由女神像|台場,自由女神,海濱公園|35.6298|139.7745|60
+teamLab Planets|teamlab|35.6492|139.7898|120
+日本科學未來館|未來館|35.619|139.7766|120
+東京鐵塔|東京鐵塔,東京塔|35.6586|139.7454|60
+明治神宮|明治神宮|35.6764|139.6993|60
+原宿竹下通|竹下通,原宿|35.6717|139.7037|60
+澀谷十字路口|澀谷,渋谷|35.6595|139.7005|60
+東京都廳展望台|都廳,都庁|35.6896|139.6917|60
+秋葉原|秋葉原|35.6984|139.7731|90
+上野公園、阿美橫町|上野,阿美橫,アメ横|35.7141|139.7741|90
+國立科學博物館|科學博物館|35.7163|139.7764|120
+東京國立博物館|國立博物館,東博|35.7188|139.7765|120
+皇居外苑、二重橋|皇居,二重橋|35.68|139.757|60
+築地場外市場|築地|35.6655|139.7707|60
+豐洲市場|豐洲,豊洲|35.645|139.784|60
+銀座|銀座|35.6717|139.765|60
+東京大學|東京大學,東大|35.7126|139.762|90
+早稻田大學|早稻田,早稲田|35.7087|139.7196|90
+日本電子專門學校|電子專門|35.6997|139.699|150
+東京迪士尼樂園|迪士尼,disney|35.6329|139.8804|540
+三麗鷗彩虹樂園|三麗鷗,彩虹樂園,kitty|35.6247|139.429|360
+鎌倉大佛|大佛,高德院|35.3167|139.5357|60
+鶴岡八幡宮|鶴岡八幡,鎌倉|35.3259|139.5566|60
+江之島|江之島,江ノ島|35.2995|139.48|90
+橫濱紅磚倉庫|紅磚,赤レンガ|35.4527|139.643|60
+橫濱中華街|中華街|35.4437|139.646|90
+合味道紀念館（橫濱杯麵博物館）|合味道,杯麵,カップヌードル|35.4558|139.6384|120
+箱根大涌谷|大涌谷,箱根|35.244|139.0198|90
+蘆之湖海賊船|蘆之湖,芦ノ湖,海賊船|35.204|139.025|60
+河口湖|河口湖|35.517|138.752|90
+富士山五合目|五合目,富士山|35.395|138.733|90
+忍野八海|忍野|35.4603|138.833|60
+新倉山淺間公園|淺間公園,新倉山,忠靈塔|35.501|138.801|60
+御殿場 Premium Outlets|outlet,暢貨|35.3083|138.9665|150
+日光東照宮|東照宮,日光|36.7581|139.5988|120
+川越小江戶|川越|35.9251|139.4858|120
+筑波山|筑波山|36.2253|140.1067|120
+JAXA 筑波太空中心|jaxa,太空中心,宇宙|36.0652|140.1278|120
+大洗水族館|大洗|36.3155|140.5906|90
+國營常陸海濱公園|常陸海濱,ひたち|36.402|140.597|120
+笠間稻荷神社|笠間稻荷|36.387|140.265|60
+牛久大佛|牛久|35.9822|140.2215|60
+成田山新勝寺|成田山,新勝寺|35.7862|140.3181|90
+AEON MALL 成田|aeon,永旺|35.76|140.353|90`,
+'關西':`清水寺|清水寺|34.9949|135.785|90
+二年坂、三年坂|二年坂,三年坂,產寧坂|34.9969|135.7808|60
+伏見稻荷大社|伏見,稻荷,稲荷|34.9671|135.7727|90
+金閣寺|金閣|35.0394|135.7292|60
+銀閣寺|銀閣|35.027|135.7982|60
+嵐山竹林、渡月橋|嵐山,竹林,渡月橋|35.017|135.6713|120
+祇園、花見小路|祇園,花見小路|35.0037|135.775|60
+京都御所|京都御所|35.0254|135.7621|60
+京都大學|京都大學,京大|35.0262|135.7808|90
+錦市場|錦市場|35.005|135.7649|60
+宇治平等院|平等院,宇治|34.8893|135.8077|60
+奈良公園、東大寺|奈良公園,東大寺,小鹿,奈良鹿|34.689|135.8398|120
+春日大社|春日大社|34.6812|135.8484|60
+大阪城|大阪城|34.6873|135.5262|90
+道頓堀、心齋橋|道頓堀,心齋橋,心斎橋|34.6687|135.5013|90
+黑門市場|黑門,黒門|34.6654|135.5068|60
+通天閣、新世界|通天閣,新世界|34.6525|135.5063|60
+日本環球影城|環球,usj|34.6654|135.4323|540
+海遊館|海遊館|34.6545|135.429|120
+梅田藍天大廈|藍天大廈,空中庭園,梅田|34.7053|135.4896|60
+阿倍野 HARUKAS|harukas,阿倍野|34.6461|135.5133|60
+大阪大學|大阪大學,阪大|34.8221|135.5244|90
+杯麵博物館（大阪池田）|杯麵,合味道,カップヌードル|34.8205|135.429|120
+神戶港、美利堅公園|神戶港,美利堅,meriken|34.6826|135.1866|60
+北野異人館|異人館,北野|34.7007|135.1906|60
+姬路城|姬路,姫路|34.8394|134.6939|90
+有馬溫泉|有馬|34.7974|135.2481|90
+美山茅草屋之里|茅草屋,かやぶき|35.283|135.62|90
+和束茶園|茶園|34.793|135.905|90
+飛鳥石舞台古墳|石舞台,明日香|34.4667|135.8264|60
+和歌山城|和歌山城|34.2272|135.1712|60
+白濱冒險大世界|白濱,白浜,冒險大世界,熊貓|33.6676|135.3637|300
+臨空城 Outlet|臨空城,rinku,outlet|34.4085|135.295|120`,
+'九州':`太宰府天滿宮|太宰府|33.5215|130.5348|90
+福岡塔|福岡塔|33.5934|130.3515|60
+博多運河城|運河城|33.5895|130.4108|60
+柳川遊船|柳川|33.163|130.4055|90
+門司港|門司|33.946|130.962|90
+九州大學|九州大學,九大|33.596|130.218|90
+熊本城|熊本城|32.8063|130.7059|90
+阿蘇草千里|阿蘇,草千里|32.884|131.084|120
+由布院|由布院,湯布院|33.265|131.355|120
+別府地獄|別府,地獄|33.315|131.476|90
+長崎和平公園|和平公園,原爆|32.7764|129.8636|60
+長崎哥拉巴園|哥拉巴,glover|32.7347|129.8686|60
+豪斯登堡|豪斯登堡,huis|33.0853|129.788|360
+櫻島|櫻島,桜島|31.585|130.657|120`,
+'北海道':`札幌大通公園|大通|43.0598|141.3484|60
+札幌鐘樓|鐘樓,時計台|43.0625|141.3536|30
+北海道大學|北海道大學,北大|43.077|141.341|90
+白色戀人公園|白色戀人,白い恋人|43.0888|141.2714|90
+札幌啤酒博物館|啤酒博物館|43.0716|141.369|60
+藻岩山|藻岩山|43.022|141.322|90
+小樽運河|小樽運河,小樽|43.199|141.002|90
+小樽音樂盒堂|音樂盒,オルゴール|43.192|141.006|60
+洞爺湖|洞爺湖|42.564|140.816|90
+昭和新山、有珠山|昭和新山,有珠山|42.543|140.865|90
+登別地獄谷|登別,地獄谷|42.495|141.149|60
+富良野富田農場|富田農場,富良野|43.418|142.427|90
+美瑛青池|青池,美瑛|43.494|142.614|60
+旭山動物園|旭山|43.7685|142.48|150`,
+'沖繩':`首里城|首里城|26.217|127.7195|90
+國際通|國際通,国際通り|26.215|127.69|90
+美麗海水族館|美麗海,美ら海|26.6942|127.878|150
+古宇利島|古宇利|26.701|128.022|60
+萬座毛|萬座毛,万座毛|26.505|127.851|60
+美國村|美國村,アメリカンビレッジ|26.316|127.757|90
+沖繩世界玉泉洞|玉泉洞,沖繩世界|26.141|127.748|120
+姬百合之塔|姬百合,ひめゆり|26.1|127.685|60
+和平祈念公園|和平祈念|26.096|127.725|90
+琉球村|琉球村|26.428|127.789|90
+殘波岬|殘波,残波|26.44|127.714|60
+瀨長島|瀨長島,瀬長島|26.175|127.642|60
+名護鳳梨園|鳳梨園,パイナップル|26.615|127.969|60`,
+'中部北陸':`名古屋城|名古屋城|35.1856|136.8996|90
+豐田產業技術紀念館|豐田,トヨタ|35.183|136.877|120
+熱田神宮|熱田|35.127|136.909|60
+大須商店街|大須|35.159|136.901|60
+名古屋樂高樂園|樂高,lego|35.05|136.843|360
+磁浮鐵道館|磁浮,リニア|35.043|136.846|120
+白川鄉合掌村|白川鄉,白川郷,合掌|36.257|136.906|120
+高山老街|高山老街,古い町並,三町|36.14|137.259|90
+金澤兼六園|兼六園|36.5621|136.6627|90
+金澤東茶屋街|東茶屋,ひがし茶屋|36.572|136.667|60
+金澤21世紀美術館|21世紀美術館|36.5609|136.6582|90
+犬山城|犬山|35.388|136.939|60
+伊勢神宮|伊勢神宮|34.455|136.725|120
+立山黑部|立山,黑部|36.577|137.62|360`
+};
+const CITY_LL={東京:[35.681,139.767],大阪:[34.69,135.5],福岡:[33.59,130.4],札幌:[43.062,141.354],那霸:[26.214,127.681],名古屋:[35.17,136.88]};
+const APT_LL={成田:[35.772,140.393],羽田:[35.549,139.78],關西:[34.434,135.244],神戶:[34.632,135.224],中部:[34.858,136.805],福岡:[33.586,130.451],熊本:[32.837,130.855],鹿兒島:[31.803,130.719],新千歲:[42.787,141.681],那霸:[26.206,127.646],小松:[36.394,136.407],富山:[36.648,137.188]};
+const HS_LL={茨城笠間:[36.385,140.265],栃木縣大田原:[36.871,140.016],御殿場:[35.308,138.934],美山:[35.283,135.62],和束町:[34.793,135.905],奈良飛鳥:[34.467,135.826],和歌山:[34.226,135.167]};
+const DB={};
+Object.entries(SPOT_DB).forEach(([r,txt])=>{DB[r]=txt.trim().split('\n').map(l=>{const[n,k,a,b,d]=l.split('|');return {name:n,kw:k.split(',').map(s=>s.toLowerCase()),ll:[+a,+b],dur:+d};});});
+
+function km(a,b){const R=6371,t=Math.PI/180,dLa=(b[0]-a[0])*t,dLo=(b[1]-a[1])*t;const h=Math.sin(dLa/2)**2+Math.cos(a[0]*t)*Math.cos(b[0]*t)*Math.sin(dLo/2)**2;return 2*R*Math.asin(Math.sqrt(h));}
+/* 估算車程（分鐘）：遊覽車，市區慢、高速快 */
+function drive(a,b){const d=km(a,b)*1.3;if(d<2)return 15;const sp=d<15?18:d<50?32:55;return Math.min(300,up(d/sp*60+10,10));}
+
+function matchSpot(region,text){
+  const t=text.toLowerCase();let best=null,bl=0;
+  (DB[region]||[]).forEach(e=>e.kw.forEach(k=>{if(k&&t.includes(k)&&k.length>bl){best=e;bl=k.length;}}));
+  return best;
+}
+
+/* 依景點位置自動分天、排時間 */
+function autoPlan(S,F){
+  const city=CITY_LL[F.reg.city]||CITY_LL['東京'];
+  const hsLL=HS_LL[F.area]||city;
+  const aptIn=APT_LL[F.out.arrApt]||city,aptOut=APT_LL[F.back.depApt]||city;
+  const unknown=[],spots=spotList(S).filter(txt=>!(S.pkOn&&/迪士尼|環球|usj|disney/i.test(txt))).map(txt=>{
+    const m=matchSpot(S.region,txt),generic=!m&&/體驗|體験|DIY|diy|教室|講座|說明會|參訪/.test(txt);
+    if(!m&&!generic)unknown.push(txt);
+    let extra=m&&/迪士尼/.test(m.name)&&!/附飯店/.test(txt)?'（附飯店-迪士尼來回地鐵票）':'';
+    if(m&&/晴空塔/.test(m.name)&&!/天望|350/.test(txt))extra+='（上天望甲板350m）';
+    let dur=m?m.dur:(generic?60:90);if(/和服/.test(txt))dur=Math.max(dur,150);
+    return {txt:txt+extra,ll:m?m.ll:city,dur,full:m?m.dur>=300:false,known:!!m,disney:!!extra||(m&&/迪士尼/.test(m.name))};
+  });
+  /* 每天的起點、終點與最晚時間（含移動到終點的車程） */
+  const days=F.days.map(d=>{
+    const o={d,spots:[]};
+    if(d.end<=d.start){o.off=true;return o;}
+    let s0=city,s1=city,limit=1140;
+    if(d.type==='first'){s0=aptIn;limit=1170;}
+    if(d.i>0&&d.i-1===F.hs)s0=hsLL;
+    if(d.type==='hs'){s1=hsLL;limit=d.end+30;}
+    if(d.type==='last'){s1=aptOut;limit=d.end+60;}
+    if(d.end<1080&&d.type!=='hs'&&d.type!=='last')limit=Math.min(limit,d.end+30);
+    Object.assign(o,{s0,s1,startT:d.start,limit,maxN:{first:1,ex:2,hs:2,last:2,free:2}[d.type]||4});
+    return o;
+  });
+  const orderSpots=(o,list)=>{let cur=o.s0,rest=list.slice(),seq=[];while(rest.length){rest.sort((a,b)=>(km(cur,a.ll)+km(a.ll,o.s1)*0.6)-(km(cur,b.ll)+km(b.ll,o.s1)*0.6));const n=rest.shift();seq.push(n);cur=n.ll;}return seq;};
+  const timeline=(o,list)=>{
+    const seq=orderSpots(o,list),lines=[];let t=o.startT,prev=o.s0,lunch=!o.d.lunch;
+    seq.forEach(sp=>{
+      t=up(t+drive(prev,sp.ll),10);
+      if(!lunch&&(t>=690||t+sp.dur>810)){const ls=up(Math.max(690,t),30);lines.push(`${fmt(ls)}-${fmt(ls+60)} 午餐`);t=ls+70;lunch=true;}
+      lines.push(`${fmt(t)}-${fmt(t+sp.dur)} ${sp.txt}`);t+=sp.dur;prev=sp.ll;
+    });
+    if(seq.length&&!lunch&&t<=780){const ls=up(Math.max(690,t+drive(prev,prev)),30);lines.push(`${fmt(ls)}-${fmt(ls+60)} 午餐`);t=ls+60;}
+    return {lines,end:seq.length?t+drive(prev,o.s1):o.startT};
+  };
+  const unplaced=[];
+  const order=spots.slice().sort((a,b)=>(b.full-a.full)||(km(b.ll,city)-km(a.ll,city)));
+  order.forEach(sp=>{
+    let best=null,bc=Infinity;
+    days.forEach(o=>{
+      if(o.off)return;
+      if(sp.full){if(o.d.type==='normal'&&!o.spots.length&&0<bc){bc=0;best=o;}return;}
+      if(o.spots.some(x=>x.full)||o.spots.length>=o.maxN)return;
+      const withIt=timeline(o,o.spots.concat(sp));
+      if(withIt.end>o.limit)return;
+      const base=o.spots.length?timeline(o,o.spots).end:o.startT+drive(o.s0,o.s1);
+      const c=withIt.end-base+o.spots.length*15;
+      if(c<bc){bc=c;best=o;}
+    });
+    if(best)best.spots.push(sp);else unplaced.push(sp.txt);
+  });
+  if(S.aiFill){
+    const usedNames=new Set(spots.filter(s=>s.known).map(s=>matchSpot(S.region,s.txt).name));
+    days.forEach(o=>{
+      if(o.off||o.spots.length||!['normal','hs'].includes(o.d.type))return;
+      const ref=o.d.type==='hs'?hsLL:city;
+      const cand=(DB[S.region]||[]).filter(e=>!usedNames.has(e.name)&&e.dur<300&&!/大學|專門|迪士尼|環球/.test(e.name)).sort((a,b)=>km(a.ll,ref)-km(b.ll,ref));
+      for(const e of cand){
+        if(o.spots.length>=2)break;
+        const sp={txt:e.name+'（建議）',ll:e.ll,dur:e.dur,full:false,known:true};
+        if(timeline(o,o.spots.concat(sp)).end>o.limit)continue;
+        o.spots.push(sp);usedNames.add(e.name);
+      }
+    });
+  }
+  const disneyDays=[];
+  const out=days.map(o=>{
+    if(!o.spots.length)return [];
+    if(o.spots[0].full){const sp=o.spots[0];
+      if(sp.disney){disneyDays.push(o.d.i);return [`全日${sp.txt.replace(/^全日/,'')}`];}
+      return [`0900-${fmt(Math.min(1170,540+sp.dur))} ${sp.txt}`,`1200-1300 午餐（園內）`];}
+    const tl=timeline(o,o.spots);if(tl.end>o.limit+15)o.late=true;
+    return tl.lines;
+  });
+  const notes=[];
+  const over=[];
+  days.forEach(o=>{if(o.late)over.push(`第 ${o.d.i+1} 天太滿：「${o.spots.map(x=>x.txt).join('」「')}」可能排不完，建議刪掉其中一個或增加天數。`);});
+  if(unknown.length)notes.push('系統不認得位置、先排在市區附近的景點：'+unknown.join('、'));
+  return {days:out,unplaced,notes,disneyDays,over};
+}
+
+/* ===== 範例 ===== */
+const SAMPLE={school:'OO高中',region:'關東',start:'2026-10-31',days:'6',students:'32',teachers:'3',parents:'',staff:'',leaders:'1',
+  pattern:'late',out:{no:'CI100',dep:'',arr:''},back:{no:'CI105',dep:'',arr:''},
+  exOn:true,exSchool:'',exDay:'',exStart:'',exEnd:'',hsOn:true,hsArea:'',hsDay:'',hsTime:'',hsCustom:'',frOn:true,frDay:'',frStart:'',frEnd:'',frPass:'',frPassCustom:'',frVoucher:'3000',pkOn:false,park:'',pkDay:'',pkVoucher:'1500',hotels:['','','','',''],
+  spots:'',
+  aiFill:true,seed:1};
+const EMPTY={school:'',region:'關東',start:'',days:'6',students:'',teachers:'',parents:'',staff:'',leaders:'1',
+  pattern:'late',out:{no:'',dep:'',arr:''},back:{no:'',dep:'',arr:''},
+  exOn:false,exSchool:'',exDay:'',exStart:'',exEnd:'',hsOn:false,hsArea:'',hsDay:'',hsTime:'',hsCustom:'',frOn:false,frDay:'',frStart:'',frEnd:'',frPass:'',frPassCustom:'',frVoucher:'3000',pkOn:false,park:'',pkDay:'',pkVoucher:'1500',
+  hotels:[],spots:'',req:'',aiFill:true,seed:1};
+function loadSample(){return clone(SAMPLE);}
+
+/* ===== 介面 ===== */
+const $=s=>document.querySelector(s);
+const KEY='itin-builder-v5';
+let S;
+try{S=JSON.parse(localStorage.getItem(KEY)||'null');}catch(e){S=null;}
+if(!S||!S.out||S.pattern==null)S=loadSample();
+if(S.students==null)S.students='';
+['exDay','frDay','pkDay','park'].forEach(k=>{if(S[k]==null)S[k]='';});if(!S.pkVoucher)S.pkVoucher='1500';
+['hsDay','hsTime','exStart','exEnd','frStart','frEnd'].forEach(k=>{if(S[k]==null)S[k]='';});
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}};
+const getP=(o,p)=>p.split('.').reduce((a,k)=>a==null?a:a[k],o);
+function setP(o,p,v){const ks=p.split('.');let a=o;ks.slice(0,-1).forEach((k,n)=>{if(a[k]==null)a[k]=/^\d+$/.test(ks[n+1])?[]:{};a=a[k];});a[ks.at(-1)]=v;}
+
+$('#f-region').innerHTML=Object.keys(REGIONS).map(k=>`<option>${k}</option>`).join('');
+$('#f-days').innerHTML=Array.from({length:9},(_,i)=>`<option value="${i+4}">${i+4} 天</option>`).join('');
+
+function suggest(k){
+  const reg=REGIONS[S.region]||REGIONS['關東'],pw=(PAT[S.pattern]||PAT.late).back;
+  return Object.entries(FLIGHTS).filter(([n,f])=>{
+    const d=toMin(f.dep);
+    if(k==='out')return TW_APTS.includes(f.depApt)&&reg.apts.includes(f.arrApt)&&d>=360&&d<600;
+    return reg.apts.includes(f.depApt)&&TW_APTS.includes(f.arrApt)&&d>=pw[0]&&d<=pw[1];
+  }).sort((a,b)=>a[1].dep.localeCompare(b[1].dep)).slice(0,8);
+}
+function renderFlights(){
+  ['out','back'].forEach(k=>{
+    const box=$('#'+k+'-chips');box.innerHTML='';
+    const list=suggest(k),cur=normFlight(S[k].no);
+    if(list.length){const lab=document.createElement('span');lab.textContent='參考航班：';box.append(lab);}
+    list.forEach(([n,f])=>{const b=document.createElement('button');b.type='button';b.className='chip'+(cur===n?' on':'');b.textContent=`${n} ${f.dep}→${f.arr}`;b.title=`${f.depApt}→${f.arrApt}`;
+      b.onclick=()=>{S[k].no=n;$('#f-'+k+'-no').value=n;renderFlights();changed();};box.append(b);});
+    const el=$('#'+k+'-lookup');el.className='lookup';el.textContent='';
+    const e=effFlight(S,k);
+    if(S[k].no&&!e.code){el.classList.add('bad');el.textContent='航班號碼格式看不懂，請輸入像 CI100 這樣的格式。';return;}
+    let txt;
+    if(e.found)txt=`${e.airline} ${e.code}：${e.depApt} ${fmt(e.dep)} → ${e.arrApt} ${fmt(e.arr)}（網路時刻表參考，需查證）`;
+    else if(e.code){el.classList.add('bad');txt=`內建時刻表查無 ${e.code}，先用估算時間：${e.depApt} 約${fmt(e.dep)} → ${e.arrApt} 約${fmt(e.arr)}`;}
+    else txt=`未填航班，先用估算時間：${e.depApt} 約${fmt(e.dep)} → ${e.arrApt} 約${fmt(e.arr)}`;
+    el.append(txt);
+    if(e.code){const a=document.createElement('a');a.href=`https://tw.trip.com/flights/status-${e.code.toLowerCase()}/`;a.target='_blank';a.rel='noopener';a.textContent=' 上網查證 ↗';el.append(a);}
+  });
+}
+const TIMES=[];for(let m=360;m<=1320;m+=30)TIMES.push(fmt(m).slice(0,2)+':'+fmt(m).slice(2));
+const hm=m=>fmt(m).slice(0,2)+':'+fmt(m).slice(2);
+function setSel(sel,html,key){sel.innerHTML=html;const v=String(getP(S,key)??'');sel.value=v;if(sel.value!==v){setP(S,key,'');sel.value='';}}
+let hotelSig='';
+function renderHotels(F){
+  const reg=REGIONS[S.region]||REGIONS['關東'],sig=JSON.stringify([F.N,F.hs,F.area,S.start,S.region]);
+  $('#hotel-hint').textContent=`沒填的晚上＝${reg.city}市區飯店`;
+  if(sig===hotelSig)return;hotelSig=sig;
+  if(!Array.isArray(S.hotels))S.hotels=[];
+  const box=$('#hotels');box.innerHTML='';
+  for(let i=0;i<F.N-1;i++){
+    const lb=dateLabel(S,i),lab=document.createElement('label');lab.className='f';
+    lab.textContent=`第 ${i+1} 晚${S.start?` ${lb.md}(${lb.wd})`:''}`;
+    const inp=document.createElement('input');inp.id='f-hotel-'+i;inp.dataset.k='hotels.'+i;
+    if(i===F.hs){inp.disabled=true;inp.value=`${F.area} HOMESTAY`;}
+    else{inp.value=S.hotels[i]||'';inp.placeholder=`${reg.city}市區飯店`;}
+    lab.append(inp);box.append(lab);
+  }
+}
+function syncOptions(){
+  const reg=REGIONS[S.region]||REGIONS['關東'],N=Math.max(4,+S.days||6);
+  const F=frame(S),dl=i=>`第 ${i+1} 天${S.start?' '+dateLabel(S,i).md+'('+dateLabel(S,i).wd+')':''}`;
+  /* HOMESTAY 地區 */
+  const all=Object.values(HS_AREAS).flat(),hsDef=HS_DEFAULT[S.region];
+  const extra=S.hsArea&&S.hsArea!=='__custom'&&!all.includes(S.hsArea)?`<option>${S.hsArea}</option>`:'';
+  setSel($('#f-hsArea'),`<option value="">${hsDef?`自動安排（${hsDef}）`:'自動安排（請選地區）'}</option>`+extra+Object.entries(HS_AREAS).map(([g,a])=>`<optgroup label="${g}">${a.map(v=>`<option>${v}</option>`).join('')}</optgroup>`).join('')+'<option value="__custom">其他（自填）</option>','hsArea');
+  /* 交通券、代金 */
+  const passes=reg.pass.slice();if(S.frPass&&!['__custom','__none'].includes(S.frPass)&&!passes.includes(S.frPass))passes.unshift(S.frPass);
+  setSel($('#f-frPass'),`<option value="">自動安排（${reg.pass[0]}）</option>`+passes.map(v=>`<option>${v}</option>`).join('')+'<option value="__custom">其他（自填）</option><option value="__none">不附交通券</option>','frPass');
+  const pkDef=PARKS[S.region];
+  setSel($('#f-park'),`<option value="">${pkDef?`自動安排（${pkDef}）`:'請選樂園'}</option><optgroup label="關東"><option>東京迪士尼樂園</option></optgroup><optgroup label="關西"><option>大阪環球影城</option></optgroup>`,'park');
+  if(!S.pkVoucher)S.pkVoucher='1500';
+  const dv=['1000','1500','2000','2500','3000','3500','4000'];if(!dv.includes(String(S.pkVoucher)))dv.push(String(S.pkVoucher));
+  setSel($('#f-pkVoucher'),dv.map(v=>`<option value="${v}">${v}</option>`).join(''),'pkVoucher');
+  const vs=['1000','1500','2000','2500','3000','3500','4000'];if(S.frVoucher&&!vs.includes(String(S.frVoucher)))vs.push(String(S.frVoucher));
+  if(!S.frVoucher)S.frVoucher=AUTO.voucher;
+  setSel($('#f-frVoucher'),vs.map(v=>`<option value="${v}">${v}</option>`).join(''),'frVoucher');
+  /* 天數：已被其他行程占用的那天不能選 */
+  const owner=(i,k)=>[[k!=='hsDay'&&S.hsOn&&i===F.hs,'HOMESTAY'],[k!=='exDay'&&S.exOn&&i===F.ex,'學校交流'],[k!=='frDay'&&S.frOn&&i===F.fr,'城市探索'],[k!=='pkDay'&&S.pkOn&&i===F.pk,'樂園']].filter(x=>x[0]).map(x=>x[1]).join('、');
+  const auto={exDay:F.ex,hsDay:F.hs,frDay:F.fr,pkDay:F.pk};
+  document.querySelectorAll('.daysel').forEach(sel=>{
+    const k=sel.dataset.k;let h=`<option value="">自動安排${auto[k]>=0?'（'+dl(auto[k])+'）':''}</option>`;
+    for(let i=1;i<=N-2;i++){const o=owner(i,k);h+=`<option value="${i}">${dl(i)}${o?'（同天有'+o+'）':''}</option>`;}
+    setSel(sel,h,k);
+  });
+  /* 時間 */
+  const autoT={exStart:hm(F.exS),exEnd:hm(F.exE),hsTime:hm(F.hsT),frStart:hm(F.frS),frEnd:hm(F.frE)};
+  document.querySelectorAll('.timesel').forEach(sel=>{
+    const k=sel.dataset.k,cur=String(S[k]||'');
+    const opts=TIMES.slice();if(cur&&!opts.includes(cur))opts.push(cur);
+    setSel(sel,`<option value="">自動安排（${autoT[k]}）</option>`+opts.map(t=>`<option>${t}</option>`).join(''),k);
+  });
+  renderHotels(F);
+  [['ex','exOn'],['hs','hsOn'],['fr','frOn'],['pk','pkOn']].forEach(([id,k])=>{
+    const on=!!S[k];$('#tog-'+id).classList.toggle('on',on);
+    $('#tog-'+id).querySelectorAll(':scope>input,:scope>select,:scope>.grid').forEach(el=>el.hidden=!on);
+  });
+  $('#f-hsCustom').hidden=!S.hsOn||S.hsArea!=='__custom';
+  const al=$('#opt-alert');al.innerHTML='';al.hidden=!F.alerts.length;
+  if(F.alerts.length){const b=document.createElement('b');b.textContent='請檢查';al.append(b);const ul=document.createElement('ul');F.alerts.forEach(t=>{const li=document.createElement('li');li.textContent=t;ul.append(li);});al.append(ul);}
+  $('#f-frPassCustom').hidden=!S.frOn||S.frPass!=='__custom';
+  renderFlights();renderSpotChips();
+}
+function fillForm(){
+  hotelSig='';
+  document.querySelectorAll('#form [data-k]').forEach(el=>{
+    const v=getP(S,el.dataset.k);
+    if(el.type==='radio')el.checked=el.value===v;
+    else if(el.type==='checkbox')el.checked=!!v;
+    else if(el.tagName!=='SELECT')el.value=v??'';
+  });
+  $('#f-region').value=S.region;$('#f-days').value=S.days;
+  if(S.out.dep||S.out.arr||S.back.dep||S.back.arr)$('#more-times').open=true;
+  syncOptions();
+}
+
+function line(o){const d=document.createElement('div');d.textContent=o.t;if(o.red)d.classList.add('red');if(o.b)d.classList.add('b');if(o.c)d.classList.add('c');return d;}
+function renderPreview(){
+  const R=build(S);
+  const sa=$('#spot-alert');sa.innerHTML='';sa.hidden=!R.spotAlerts.length;
+  if(R.spotAlerts.length){const b=document.createElement('b');b.textContent='景點排太滿';sa.append(b);const ul=document.createElement('ul');R.spotAlerts.forEach(t=>{const li=document.createElement('li');li.textContent=t;ul.append(li);});sa.append(ul);}
+  $('#pv-title').textContent=R.title;$('#pv-pax').textContent=R.pax;
+  const req=String(S.req||'').trim();$('#pv-req').textContent=req?'特殊需求：'+req:'';$('#pv-req').hidden=!req;
+  $('#pax-total').textContent=`合計 ${R.total} 人`;
+  const tb=$('#pv-body');tb.innerHTML='';
+  R.days.forEach(d=>{
+    const tr=document.createElement('tr');
+    const c1=document.createElement('td'),c2=document.createElement('td'),c3=document.createElement('td');
+    c1.append(line({t:d.md}));if(d.wd)c1.append(line({t:`(${d.wd})`}));
+    d.sched.forEach(s=>c2.append(line(s)));d.rem.forEach(s=>c3.append(line(s)));
+    [c1,c2,c3].forEach(c=>{c.contentEditable='true';tr.append(c);});tb.append(tr);
+  });
+  const w=$('#warn');w.innerHTML='<b>需人工確認</b><ul></ul>';
+  const ul=w.querySelector('ul');
+  ['此為系統暫時設定：景點時間與車程請以 Google Map 查詢的時間為主。','餐食與各時段都是系統暫排，需與供應商、航班人工確認。'].concat(R.warn).forEach(t=>{const li=document.createElement('li');li.textContent=t;ul.append(li);});
+  save();
+}
+let generated=false;
+let tmr;
+function changed(){save();clearTimeout(tmr);tmr=setTimeout(renderPreview,150);if(generated){generated=false;setReady(false);$('#stale').hidden=false;}}
+function setReady(on){['#btn-docx','#btn-copy'].forEach(id=>$(id).disabled=!on);$('#pv-badge').textContent=on?'已產生，可以下載':'預覽中（尚未產生）';$('#pv-badge').classList.toggle('ok',on);if(on)$('#stale').hidden=true;}
+function generate(){
+  const miss=[];if(!String(S.school||'').trim())miss.push('校名');if(!S.start)miss.push('出發日期');if(!String(S.students||'').trim())miss.push('學生人數');if(!spotList(S).length)miss.push('必去景點');
+  renderPreview();generated=true;setReady(true);$('#stale').hidden=true;
+  const st=$('#gen-status');st.textContent=miss.length?`已產生。還沒填：${miss.join('、')}，行程表上先空著或用預設值。`:'已產生，右邊可以直接點進表格修改，再下載 Word。';
+  if(window.matchMedia('(max-width:960px)').matches)$('.pv').scrollIntoView({behavior:'smooth',block:'start'});
+}
+$('#btn-gen').onclick=generate;
+
+$('#form').addEventListener('input',e=>{
+  const el=e.target;if(!el.dataset.k)return;
+  if(el.type==='radio'&&!el.checked)return;
+  setP(S,el.dataset.k,el.type==='checkbox'?el.checked:el.value);
+  syncOptions();changed();
+});
+function msg(t){$('#msg').textContent=t;}
+$('#btn-sample').onclick=()=>{S=loadSample();fillForm();save();renderPreview();generated=false;setReady(false);$('#stale').hidden=true;$('#gen-status').textContent='';msg('已載入範例（OO高中關東 6 日），確認後按「產生行程表」。');};
+let clearArm=0;
+$('#btn-clear').onclick=e=>{
+  if(Date.now()-clearArm>3000){clearArm=Date.now();e.target.textContent='再按一次確認清空';setTimeout(()=>e.target.textContent='清空重填',3000);return;}
+  S=clone(EMPTY);clearArm=0;e.target.textContent='清空重填';fillForm();save();renderPreview();generated=false;setReady(false);$('#stale').hidden=true;$('#gen-status').textContent='';msg('已清空，可以開始填新的團。');
+};
+
+/* ===== 常見景點快速加入 ===== */
+function renderSpotChips(){
+  const box=$('#spot-chips');box.innerHTML='';
+  const have=spotList(S).map(t=>matchSpot(S.region,t)).filter(Boolean).map(e=>e.name);
+  (DB[S.region]||[]).filter(e=>!/大學|學校|專門|迪士尼|環球/.test(e.name)).forEach(e=>{
+    const b=document.createElement('button');b.type='button';b.className='chip'+(have.includes(e.name)?' on':'');b.textContent=e.name;
+    b.onclick=()=>{if(have.includes(e.name))return;S.spots=(String(S.spots||'').trim()?String(S.spots).trim()+'\n':'')+e.name;$('#f-spots').value=S.spots;renderSpotChips();changed();};
+    box.append(b);
+  });
+}
+/* ===== 讀取預覽（含手動修改）===== */
+function cellLines(td){
+  const out=[];
+  td.childNodes.forEach(n=>{
+    if(n.nodeType===3){const t=n.textContent.trim();if(t)out.push({t});return;}
+    if(n.nodeType!==1||n.tagName==='BR')return;
+    const red=n.classList.contains('red')||!!n.querySelector('.red,font[color]'),b=n.classList.contains('b'),c=n.classList.contains('c');
+    n.innerText.split('\n').forEach(x=>{if(x.trim())out.push({t:x,red,b,c});});
+  });
+  return out;
+}
+function readSheet(){
+  return {title:$('#pv-title').innerText.trim(),pax:$('#pv-pax').innerText.trim(),note:$('#pv-note').innerText.trim(),req:$('#pv-req').hidden?'':$('#pv-req').innerText.trim(),
+    rows:[...$('#pv-body').rows].map(tr=>[...tr.cells].map(cellLines))};
+}
+/* ===== Word 產生 ===== */
+const x=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const FONT='Microsoft JhengHei';
+function wr(t,o={}){const sz=o.sz||22;return `<w:r><w:rPr><w:rFonts w:ascii="${FONT}" w:hAnsi="${FONT}" w:eastAsia="${FONT}" w:cs="${FONT}"/>${o.b?'<w:b/><w:bCs/>':''}${o.red?'<w:color w:val="E00000"/>':''}<w:sz w:val="${sz}"/><w:szCs w:val="${sz}"/></w:rPr><w:t xml:space="preserve">${x(t)}</w:t></w:r>`;}
+function wp(t,o={}){return `<w:p><w:pPr><w:spacing w:before="${o.before||0}" w:after="${o.after||0}" w:line="${o.line||288}" w:lineRule="auto"/>${o.c?'<w:jc w:val="center"/>':''}</w:pPr>${t?wr(t,o):''}</w:p>`;}
+let CFG={sz:22,line:276};
+function wc(lines,w,o={}){
+  const ps=lines.length?lines.map(l=>wp(l.t,{...l,c:o.c||l.c,sz:o.sz||CFG.sz,line:CFG.line})).join(''):'<w:p/>';
+  return `<w:tc><w:tcPr><w:tcW w:w="${w}" w:type="dxa"/><w:vAlign w:val="center"/>${o.shade?'<w:shd w:val="clear" w:color="auto" w:fill="E6E6E6"/>':''}</w:tcPr>${ps}</w:tc>`;
+}
+/* 估算高度，挑最大且放得下一頁的字級：6 天內一頁，超過 6 天分兩頁（每頁最多 6 天） */
+function fitCfg(D,pages){
+  const usable=16838-1440;
+  const head=2400+(D.req?600:0);
+  const rowsLines=g=>g.reduce((a,r)=>a+Math.max(1,...r.map(c=>c.length)),0);
+  const worst=Math.max(...pages.map(g=>rowsLines(g)+0)),rowsN=Math.max(...pages.map(g=>g.length));
+  const opts=[{sz:22,line:276},{sz:22,line:252},{sz:21,line:240},{sz:20,line:240},{sz:19,line:240},{sz:18,line:240}];
+  for(const o of opts){const lh=o.sz/2*1.45*20*o.line/240;if(worst*lh+rowsN*80+500+head<=usable)return o;}
+  return opts[opts.length-1];
+}
+function docXml(D){
+  const W=[1000,5966,3500],bd=['top','left','bottom','right','insideH','insideV'].map(k=>`<w:${k} w:val="single" w:sz="8" w:space="0" w:color="000000"/>`).join('');
+  const pages=[];for(let i=0;i<D.rows.length;i+=6)pages.push(D.rows.slice(i,i+6));
+  if(!pages.length)pages.push([]);
+  CFG=fitCfg(D,pages);
+  const head=`<w:tr><w:trPr><w:tblHeader/><w:cantSplit/></w:trPr>${wc([{t:'日期'}],W[0],{c:1,shade:1})}${wc([{t:'行程內容'}],W[1],{c:1,shade:1})}${wc([{t:'備註'}],W[2],{c:1,shade:1})}</w:tr>`;
+  const tbl=rows=>`<w:tbl><w:tblPr><w:tblW w:w="10466" w:type="dxa"/><w:jc w:val="center"/><w:tblBorders>${bd}</w:tblBorders><w:tblLayout w:type="fixed"/><w:tblCellMar><w:top w:w="30" w:type="dxa"/><w:left w:w="110" w:type="dxa"/><w:bottom w:w="30" w:type="dxa"/><w:right w:w="110" w:type="dxa"/></w:tblCellMar></w:tblPr><w:tblGrid>${W.map(w=>`<w:gridCol w:w="${w}"/>`).join('')}</w:tblGrid>${head}${rows.map(r=>`<w:tr><w:trPr><w:cantSplit/></w:trPr>${wc(r[0]||[],W[0],{c:1})}${wc(r[1]||[],W[1])}${wc(r[2]||[],W[2])}</w:tr>`).join('')}</w:tbl>`;
+  const brk='<w:p><w:r><w:br w:type="page"/></w:r></w:p>';
+  const body=pages.map(tbl).join(brk);
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>`+
+    wp(D.title,{b:1,c:1,sz:36,after:160})+wp(D.pax,{b:1,sz:24,after:60})+body+(D.req?wp(D.req,{b:1,sz:22,before:160}):'')+wp(D.note,{b:1,sz:22,before:160})+
+    `<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="720" w:right="720" w:bottom="720" w:left="720" w:header="400" w:footer="400" w:gutter="0"/></w:sectPr></w:body></w:document>`;
+}
+async function makeDocx(D){
+  const z=new JSZip();
+  z.file('[Content_Types].xml','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>');
+  z.file('_rels/.rels','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>');
+  z.file('word/document.xml',docXml(D));
+  return z.generateAsync({type:'blob'});
+}
+
+let DL=null;
+(async()=>{try{DL=window.claude?.use?await window.claude.use('downloads'):null;}catch(e){DL=null;}})();
+$('#btn-docx').onclick=async()=>{
+  const D=readSheet(),name=(D.title||'行程表').replace(/[\\/:*?"<>|]/g,'').replace(/\s+/g,'')+'.docx';
+  let blob;try{blob=await makeDocx(D);}catch(e){msg('Word 檔產生失敗，請改用「複製表格」。');return;}
+  if(DL){
+    try{await DL.save({filename:name,data:blob});msg('已下載：'+name);}
+    catch(e){msg(e&&e.code==='declined'?'已取消下載。':'下載沒有成功，可改用「複製表格」貼到 Word。');}
+    return;
+  }
+  /* 放在公司網站等一般網頁時，用瀏覽器直接下載 */
+  const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;document.body.append(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),4000);msg('已下載：'+name+'（如果沒有反應，請改用「複製表格」）');
+};
+
+/* ===== 複製（貼到 Word 保留表格）===== */
+function copyHtml(D){
+  const st='font-family:Microsoft JhengHei;font-size:11pt;';
+  const cell=(ls,w,c)=>`<td style="border:1px solid #000;padding:2px 6px;vertical-align:middle;width:${w};${c?'text-align:center;':''}">${ls.map(l=>`<div style="${l.red?'color:#E00000;':''}${l.b?'font-weight:bold;':''}${l.c||c?'text-align:center;':''}">${x(l.t)}</div>`).join('')}</td>`;
+  return `<div style="${st}"><p style="text-align:center;font-size:18pt;font-weight:bold">${x(D.title)}</p><p style="font-weight:bold;font-size:12pt">${x(D.pax)}</p><table style="border-collapse:collapse;width:100%;${st}"><tr><th style="border:1px solid #000;background:#E6E6E6">日期</th><th style="border:1px solid #000;background:#E6E6E6">行程內容</th><th style="border:1px solid #000;background:#E6E6E6">備註</th></tr>${D.rows.map(r=>`<tr>${cell(r[0]||[],'10%',1)}${cell(r[1]||[],'57%')}${cell(r[2]||[],'33%')}</tr>`).join('')}</table>${D.req?`<p style="font-weight:bold;font-size:12pt">${x(D.req)}</p>`:''}<p style="font-weight:bold;font-size:12pt">${x(D.note)}</p></div>`;
+}
+$('#btn-copy').onclick=async()=>{
+  const D=readSheet(),html=copyHtml(D);
+  const plain=[D.title,D.pax,...D.rows.map(r=>r.map(c=>c.map(l=>l.t).join(' / ')).join('\t')),D.req,D.note].filter(Boolean).join('\n');
+  try{await navigator.clipboard.write([new ClipboardItem({'text/html':new Blob([html],{type:'text/html'}),'text/plain':new Blob([plain],{type:'text/plain'})})]);msg('已複製，到 Word 直接貼上即可。');}
+  catch(e){
+    try{const r=document.createRange();r.selectNodeContents($('#sheet'));const s=getSelection();s.removeAllRanges();s.addRange(r);const ok=document.execCommand('copy');msg(ok?'已複製，到 Word 直接貼上即可。':'已選取整張行程表，請按 Ctrl+C（Mac：⌘C）複製。');}
+    catch(e2){msg('請手動選取右側行程表後複製。');}
+  }
+};
+
+fillForm();renderPreview();setReady(false);
+
+</script>
+</body>
+</html>
